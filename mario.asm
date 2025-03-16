@@ -10,7 +10,10 @@
     dark_blue: .word 0x111d4a
     turquoise: .word 0x8789C0
     color_black: .word 0x000
-    color_purple: .word 0xA020F0
+    color_purple: .word 0x5500b2
+    color_dark_purple: .word 0x2e0061
+    .include "asset_bottle.c"
+    trolo: .space 100000
 
 .macro push(%reg)
     # Pushes a register value onto a stack.
@@ -127,19 +130,35 @@
     pop($t0)
 .end_macro
 
-.macro draw_background(%max_pixels)
-    push_zero($t0) # $t0 stores the current drawing position
-    push_zero($t1) # $t1 stores the number of pixels drawn
+.macro draw_background()
+    push_zero($t0)
+    push_zero($t1)
     
-    lw $t0 disp_addr
-    li $t1 0
+    li $t0 31
+    li $t1 27
+    li $t3 8
+
+    draw_background_loop_y:
+        mul $s1 $t1 $t3
+        li $t0 31
+        draw_background_loop_x:
+            xor $t4 $t1 $t0          # XOR row and column to alternate colors
+            andi $t4 $t4 1           # Mask the lowest bit (alternating pattern)
+            beqz $t4 draw_background_set_black
+            
+            draw_background_set_white:
+                set_color_w(color_black)
+                j draw_background_draw
+            draw_background_set_black:
+                set_color_w(color_dark_purple)               
+            draw_background_draw:
+                mul $s0 $t0 $t3
+                draw_square($t3)
+                subi $t0 $t0 1
+                bgez $t0 draw_background_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_background_loop_y
     
-    draw_background_loop:
-        sw $s7 0($t0)
-        addi $t0 $t0 4
-        addi $t2 $t2 1
-        blt $t2 %max_pixels draw_background_loop
-        
     pop($t1)
     pop($t0)
 .end_macro
@@ -181,38 +200,35 @@
     pop($s0)
 .end_macro
 
-.macro draw_bottle()
-
+.macro draw_asset(%asset_size, %asset_data)
+    push($t0)
+    push($t1)
+    
+    lw $t0 %asset_size
+    la $t1 %asset_data
+    
+    draw_asset_loop:
+        lw $s2 0($t1)   # x offset
+        lw $s3 4($t1)   # y offset
+        lw $s7 8($t1)   # color
+        draw()
+        
+        addi $t1 $t1 12
+        subi $t0 $t0 1
+        bgtz $t0, draw_asset_loop
+    
+    pop($t1)
+    pop($t0)
 .end_macro
 
 .text
     set_color_w(background_color)
     lw $a0 screen_size
-    draw_background($a0)
-    
-    set_x_i(128)
-    set_y_i(128)
-    set_color_w(foreground_color)
-    li $a0 128
-    draw_square($a0)
-    
+    draw_background()
+        
     set_x_i(0)
     set_y_i(0)
-    set_color_w(foreground_color)
-    li $a0 128
-    draw_square($a0)
-    
-    set_x_i(128)
-    set_y_i(50)
-    draw_capsule()
-    
-    set_x_i(16)
-    set_y_i(16)
-    draw_capsule()
-    
-    set_x_i(0)
-    set_y_i(0)
-    draw_bottle()
+    draw_asset(asset_bottle_size, asset_bottle_data)
     
    
 
