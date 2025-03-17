@@ -12,7 +12,17 @@
     color_black: .word 0x000
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
-    .include "asset_bottle.c"
+    .include "bottle.c"
+    .include "pill_red_left.c"
+    .include "pill_red_right.c"
+    .include "pill_blue_left.c"
+    .include "pill_blue_right.c"
+    .include "pill_yellow_left.c"
+    .include "pill_yellow_right.c"
+    .include "pill_green_left.c"
+    .include "pill_green_right.c"
+    .include "pill_pink_left.c"
+    .include "pill_pink_right.c"
     trolo: .space 100000
 
 .macro push(%reg)
@@ -230,6 +240,29 @@
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     
+    set_x_i(128)
+    set_y_i(100)
+    draw_asset(asset_pill_red_left_size, asset_pill_red_left_data)
+    
+    set_x_i(136)
+    set_y_i(100)
+    draw_asset(asset_pill_red_right_size, asset_pill_red_right_data)
+    
+    set_x_i(96)
+    set_y_i(192)
+    draw_asset(asset_pill_blue_left_size, asset_pill_blue_left_data)
+    
+    set_x_i(104)
+    set_y_i(192)
+    draw_asset(asset_pill_pink_right_size, asset_pill_pink_right_data)
+    
+    set_x_i(112)
+    set_y_i(192)
+    draw_asset(asset_pill_yellow_left_size, asset_pill_yellow_left_data)
+    
+    set_x_i(120)
+    set_y_i(192)
+    draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
    
 
 
