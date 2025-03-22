@@ -9,9 +9,15 @@
     foreground_color: .word 0xEDA4BD
     dark_blue: .word 0x111d4a
     turquoise: .word 0x8789C0
-    color_black: .word 0x000
+    color_black: .word 0b0
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
+    board: .space 1440
+    board_width: .word 10
+    board_width_minus_one: .word 9
+    board_height: .word 18
+    board_height_minus_one: .word 18
+    .eqv BOARD_OBJECT_SIZE 8
     .include "bottle.c"
     .include "pill_red_left.c"
     .include "pill_red_right.c"
@@ -231,6 +237,25 @@
     pop($t0)
 .end_macro
 
+.macro draw_board(%board)
+    push($t0)
+    push($t1)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                subi $t0 $t0 1
+                bgez $t0 draw_board_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_board_loop_y
+    
+    pop($t1)
+    pop($t0)
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
@@ -264,5 +289,5 @@
     set_y_i(192)
     draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
    
-
+    draw_board(board)
 
