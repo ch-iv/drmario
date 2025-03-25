@@ -12,24 +12,30 @@
     color_black: .word 0b0
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
-    board: .space 1440
-    board_width: .word 10
-    board_width_minus_one: .word 9
-    board_height: .word 18
-    board_height_minus_one: .word 18
-    .eqv BOARD_OBJECT_SIZE 8
-    .include "bottle.c"
+    trolo1: .space 1000000
+    .include "board.c"
+    trolo2: .space 1000000
     .include "pill_red_left.c"
     .include "pill_red_right.c"
+    .include "pill_red_top.c"
+    .include "pill_red_bottom.c"
+    .include "pill_red_single.c"
     .include "pill_blue_left.c"
     .include "pill_blue_right.c"
+    .include "pill_blue_top.c"
+    .include "pill_blue_bottom.c"
+    .include "pill_blue_single.c"
     .include "pill_yellow_left.c"
     .include "pill_yellow_right.c"
+    .include "pill_yellow_top.c"
+    .include "pill_yellow_bottom.c"
+    .include "pill_yellow_single.c"
     .include "pill_green_left.c"
     .include "pill_green_right.c"
     .include "pill_pink_left.c"
     .include "pill_pink_right.c"
-    trolo: .space 100000
+    .include "bottle.c"
+    trolo: .space 1000000
 
 .macro push(%reg)
     # Pushes a register value onto a stack.
@@ -240,18 +246,132 @@
 .macro draw_board(%board)
     push($t0)
     push($t1)
+    push($t2)
+    push($t3)
     
-    lw $t0 board_width_minus_one    # x iteration variable
-    lw $t1 board_height_minus_one   # y iteration variable
+    lw $t0 board_width    # x iteration variable
+    lw $t1 board_height   # y iteration variable
+    la $t2 board
     
     draw_board_loop_y:
-        lw $t0 board_width_minus_one
+        lw $t0 board_width
         draw_board_loop_x:
+                lb $s0 0($t2)   # x offset
+                lb $s1 4($t2)   # y offset
+                lb $t5 8($t2)   # sprite color (not a hex code)
+                lb $t6 12($t2)  # sprite type
+                
+                andi $t7 $t6 0b01000000     # is it a pill?
+                blez $t7 not_a_pill
+                
+                it_is_a_pill:
+                    andi $t7 $t5 0b00000001     # is it red?
+                    bgtz $t7 draw_red_pill
+                    andi $t7 $t5 0b00000010     # is it blue?
+                    bgtz $t7 draw_blue_pill
+                    andi $t7 $t5 0b00000100     # is it yellow?
+                    bgtz $t7 draw_yellow_pill
+                    j not_a_pill    # neither red, blue, nor yellow
+                    
+                    draw_red_pill:
+                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        bgtz $t8 draw_red_left_pill
+                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        bgtz $t8 draw_red_right_pill
+                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        bgtz $t8 draw_red_top_pill
+                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        bgtz $t8 draw_red_bottom_pill
+                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        bgtz $t8 draw_red_single_pill
+                        j not_a_pill    # neither left, right, top, bottom nor single
+                        
+                        draw_red_left_pill:
+                            draw_asset(asset_pill_red_left_size, asset_pill_red_left_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_red_right_pill:
+                            draw_asset(asset_pill_red_right_size, asset_pill_red_right_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_red_top_pill:
+                            draw_asset(asset_pill_red_top_size, asset_pill_red_top_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_red_bottom_pill:
+                            draw_asset(asset_pill_red_bottom_size, asset_pill_red_bottom_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_red_single_pill:
+                            draw_asset(asset_pill_red_bottom_size, asset_pill_red_bottom_data)
+                            j not_a_pill    # done rendering the pill      
+                        j not_a_pill    # done rendering the pill
+                    
+                    draw_blue_pill:
+                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        bgtz $t8 draw_blue_left_pill
+                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        bgtz $t8 draw_blue_right_pill
+                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        bgtz $t8 draw_blue_top_pill
+                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        bgtz $t8 draw_blue_bottom_pill
+                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        bgtz $t8 draw_blue_single_pill
+                        j not_a_pill    # neither left, right, top, bottom nor single
+                        
+                        draw_blue_left_pill:
+                            draw_asset(asset_pill_blue_left_size, asset_pill_blue_left_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_blue_right_pill:
+                            draw_asset(asset_pill_blue_right_size, asset_pill_blue_right_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_blue_top_pill:
+                            draw_asset(asset_pill_blue_top_size, asset_pill_blue_top_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_blue_bottom_pill:
+                            draw_asset(asset_pill_blue_bottom_size, asset_pill_blue_bottom_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_blue_single_pill:
+                            draw_asset(asset_pill_blue_bottom_size, asset_pill_blue_bottom_data)
+                            j not_a_pill    # done rendering the pill      
+                    j not_a_pill    # done rendering the pill
+                    
+                    draw_yellow_pill:
+                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        bgtz $t8 draw_yellow_left_pill
+                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        bgtz $t8 draw_yellow_right_pill
+                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        bgtz $t8 draw_yellow_top_pill
+                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        bgtz $t8 draw_yellow_bottom_pill
+                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        bgtz $t8 draw_yellow_single_pill
+                        j not_a_pill    # neither left, right, top, bottom nor single
+                        
+                        draw_yellow_left_pill:
+                            draw_asset(asset_pill_yellow_left_size, asset_pill_yellow_left_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_yellow_right_pill:
+                            draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_yellow_top_pill:
+                            draw_asset(asset_pill_yellow_top_size, asset_pill_yellow_top_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_yellow_bottom_pill:
+                            draw_asset(asset_pill_yellow_bottom_size, asset_pill_yellow_bottom_data)
+                            j not_a_pill    # done rendering the pill
+                        draw_yellow_single_pill:
+                            draw_asset(asset_pill_yellow_bottom_size, asset_pill_yellow_bottom_data)
+                            j not_a_pill    # done rendering the pill      
+                    j not_a_pill    # done rendering the pill
+                    
+                not_a_pill:
+                addi $t2 $t2 32
                 subi $t0 $t0 1
-                bgez $t0 draw_board_loop_x
+                bgtz $t0 draw_board_loop_x
         subi $t1 $t1 1
-        bgez $t1 draw_board_loop_y
+        bgtz $t1 draw_board_loop_y
     
+    pop($t3)
+    pop($t2)
     pop($t1)
     pop($t0)
 .end_macro
@@ -265,29 +385,30 @@
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     
-    set_x_i(128)
-    set_y_i(100)
-    draw_asset(asset_pill_red_left_size, asset_pill_red_left_data)
+    # set_x_i(128)
+    # set_y_i(100)
+    # draw_asset(asset_pill_red_left_size, asset_pill_red_left_data)
     
-    set_x_i(136)
-    set_y_i(100)
-    draw_asset(asset_pill_red_right_size, asset_pill_red_right_data)
+    # set_x_i(136)
+    # set_y_i(100)
+    # draw_asset(asset_pill_red_right_size, asset_pill_red_right_data)
     
-    set_x_i(96)
-    set_y_i(192)
-    draw_asset(asset_pill_blue_left_size, asset_pill_blue_left_data)
+    # set_x_i(96)
+    # set_y_i(192)
+    # draw_asset(asset_pill_blue_left_size, asset_pill_blue_left_data)
     
-    set_x_i(104)
-    set_y_i(192)
-    draw_asset(asset_pill_pink_right_size, asset_pill_pink_right_data)
+    # set_x_i(104)
+    # set_y_i(192)
+    # draw_asset(asset_pill_pink_right_size, asset_pill_pink_right_data)
     
-    set_x_i(112)
-    set_y_i(192)
-    draw_asset(asset_pill_yellow_left_size, asset_pill_yellow_left_data)
+    # set_x_i(112)
+    # set_y_i(192)
+    # draw_asset(asset_pill_yellow_left_size, asset_pill_yellow_left_data)
     
-    set_x_i(120)
-    set_y_i(192)
-    draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
-   
+    # set_x_i(120)
+    # set_y_i(192)
+    # draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
+    set_x_i(64)
+    set_y_i(64)
     draw_board(board)
 
