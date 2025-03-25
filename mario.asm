@@ -12,30 +12,29 @@
     color_black: .word 0b0
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
-    trolo1: .space 1000000
+    trolo1: .space 10000000
     .include "board.c"
-    trolo2: .space 1000000
+    trolo2: .space 10000000
     .include "pill_red_left.c"
     .include "pill_red_right.c"
     .include "pill_red_top.c"
     .include "pill_red_bottom.c"
     .include "pill_red_single.c"
+    .include "pill_red_empty.c"
     .include "pill_blue_left.c"
     .include "pill_blue_right.c"
     .include "pill_blue_top.c"
     .include "pill_blue_bottom.c"
     .include "pill_blue_single.c"
+    .include "pill_blue_empty.c"
     .include "pill_yellow_left.c"
     .include "pill_yellow_right.c"
     .include "pill_yellow_top.c"
     .include "pill_yellow_bottom.c"
     .include "pill_yellow_single.c"
-    .include "pill_green_left.c"
-    .include "pill_green_right.c"
-    .include "pill_pink_left.c"
-    .include "pill_pink_right.c"
+    .include "pill_yellow_empty.c"
     .include "bottle.c"
-    trolo: .space 1000000
+    trolo: .space 10000000
 
 .macro push(%reg)
     # Pushes a register value onto a stack.
@@ -284,6 +283,8 @@
                         bgtz $t8 draw_red_bottom_pill
                         andi $t8 $t6 0b00000010     # is it a single sided pill?
                         bgtz $t8 draw_red_single_pill
+                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        bgtz $t8 draw_red_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
                         draw_red_left_pill:
@@ -299,8 +300,11 @@
                             draw_asset(asset_pill_red_bottom_size, asset_pill_red_bottom_data)
                             j not_a_pill    # done rendering the pill
                         draw_red_single_pill:
-                            draw_asset(asset_pill_red_bottom_size, asset_pill_red_bottom_data)
+                            draw_asset(asset_pill_red_single_size, asset_pill_red_single_data)
                             j not_a_pill    # done rendering the pill      
+                        draw_red_empty_pill:
+                            draw_asset(asset_pill_red_empty_size, asset_pill_red_empty_data)
+                            j not_a_pill    # done rendering the pill    
                         j not_a_pill    # done rendering the pill
                     
                     draw_blue_pill:
@@ -314,6 +318,8 @@
                         bgtz $t8 draw_blue_bottom_pill
                         andi $t8 $t6 0b00000010     # is it a single sided pill?
                         bgtz $t8 draw_blue_single_pill
+                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        bgtz $t8 draw_blue_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
                         draw_blue_left_pill:
@@ -329,8 +335,11 @@
                             draw_asset(asset_pill_blue_bottom_size, asset_pill_blue_bottom_data)
                             j not_a_pill    # done rendering the pill
                         draw_blue_single_pill:
-                            draw_asset(asset_pill_blue_bottom_size, asset_pill_blue_bottom_data)
-                            j not_a_pill    # done rendering the pill      
+                            draw_asset(asset_pill_blue_single_size, asset_pill_blue_single_data)
+                            j not_a_pill    # done rendering the pill     
+                        draw_blue_empty_pill:
+                            draw_asset(asset_pill_blue_empty_size, asset_pill_blue_empty_data)
+                            j not_a_pill    # done rendering the pill
                     j not_a_pill    # done rendering the pill
                     
                     draw_yellow_pill:
@@ -344,6 +353,8 @@
                         bgtz $t8 draw_yellow_bottom_pill
                         andi $t8 $t6 0b00000010     # is it a single sided pill?
                         bgtz $t8 draw_yellow_single_pill
+                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        bgtz $t8 draw_yellow_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
                         draw_yellow_left_pill:
@@ -359,8 +370,11 @@
                             draw_asset(asset_pill_yellow_bottom_size, asset_pill_yellow_bottom_data)
                             j not_a_pill    # done rendering the pill
                         draw_yellow_single_pill:
-                            draw_asset(asset_pill_yellow_bottom_size, asset_pill_yellow_bottom_data)
+                            draw_asset(asset_pill_yellow_single_size, asset_pill_yellow_single_data)
                             j not_a_pill    # done rendering the pill      
+                        draw_yellow_empty_pill:
+                            draw_asset(asset_pill_yellow_empty_size, asset_pill_yellow_empty_data)
+                            j not_a_pill    # done rendering the pill   
                     j not_a_pill    # done rendering the pill
                     
                 not_a_pill:
@@ -408,7 +422,7 @@
     # set_x_i(120)
     # set_y_i(192)
     # draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
-    set_x_i(64)
-    set_y_i(64)
+    # set_x_i(72)
+    # set_y_i(72)
     draw_board(board)
 

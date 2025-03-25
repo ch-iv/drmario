@@ -55,40 +55,23 @@ def get_input_assets() -> list[Path]:
     return list((Path(__file__).parent / "assets").iterdir())
 
 def map_color(color: tuple[int, int, int], filename: str) -> tuple[int, int, int]:
+    if filename.startswith("pill_"):
+        tmp = filename.split("_")
+        filename = f"{tmp[0]}_{tmp[1]}"
     color_map = {
-        "pill_blue_left": {
-            (255, 0, 0): (27, 157, 219),
-            (0, 255, 0): (228, 228, 228),
+        "pill_blue": {
+            (255, 0, 0): (96, 160, 255),
+            (0, 255, 0): (232, 208, 32),
         },
-        "pill_yellow_left": {
-            (255, 0, 0): (255, 200, 70),
-            (0, 255, 0): (228, 228, 228),
+        "pill_yellow": {
+            (255, 0, 0): (232, 208, 32),
+            (0, 255, 0): (96, 160, 255),
         },
-        "pill_red_left": {
-            (255, 0, 0): (219, 27, 92),
-            (0, 255, 0): (255, 200, 70),
+        "pill_red": {
+            (255, 0, 0): (216, 64, 96),
+            (0, 255, 0): (232, 208, 32),
         },
-        "pill_pink_left": {
-            (255, 0, 0): (255, 136, 255),
-            (0, 255, 0): (228, 228, 228),
-        },
-        "pill_blue_right": {
-            (255, 0, 0): (27, 157, 219),
-            (0, 255, 0): (228, 228, 228),
-        },
-        "pill_yellow_right": {
-            (255, 0, 0): (255, 200, 70),
-            (0, 255, 0): (228, 228, 228),
-        },
-        "pill_red_right": {
-            (255, 0, 0): (219, 27, 92),
-            (0, 255, 0): (255, 200, 70),
-        },
-        "pill_pink_right": {
-            (255, 0, 0): (255, 136, 255),
-            (0, 255, 0): (228, 228, 228),
-        },
-    }
+   }
 
     filename_color_map = color_map.get(filename, {})
 
@@ -102,30 +85,35 @@ def main():
     for path in get_input_assets():
         width, height, pixels = read_ppm(path)
         asset_name = path.name.removesuffix(".ppm")
-        words = ""
-        n = 0
-        for x in range(width):
-            for y in range(height):
-                color = pixels[y][x]
-
-                if color != (0, 0, 0):
-                    if n % 8 == 0 and n != 0:
-                        words += "\n"
-
-                    color = map_color(color, asset_name)
-
-
-                    words += f"{rgb_to_hex((0, 0, x))}, {rgb_to_hex((0, 0, y))}, {rgb_to_hex(color)}, "
-                    n += 1
-
-        words.removesuffix(", ")
-
-        with open(f"{asset_name}.c", "w") as f:
-            f.write(
-                f"asset_{asset_name}_size: .word {n}\n"
-                f"asset_{asset_name}_data: .word\n"
-                f"{words}"
-            )
+        asset_names = [asset_name]
+        if asset_name.startswith("pill_"):
+            pill = asset_name.split("_")
+            asset_names = [f"{pill[0]}_{color}_{pill[1]}" for color in ["red", "blue", "yellow"]]
+        for asset_name in asset_names:
+            words = ""
+            n = 0
+            for x in range(width):
+                for y in range(height):
+                    color = pixels[y][x]
+    
+                    if color != (0, 0, 0):
+                        if n % 8 == 0 and n != 0:
+                            words += "\n"
+    
+                        color = map_color(color, asset_name)
+    
+    
+                        words += f"{rgb_to_hex((0, 0, x))}, {rgb_to_hex((0, 0, y))}, {rgb_to_hex(color)}, "
+                        n += 1
+    
+            words.removesuffix(", ")
+    
+            with open(f"{asset_name}.c", "w") as f:
+                f.write(
+                    f"asset_{asset_name}_size: .word {n}\n"
+                    f"asset_{asset_name}_data: .word\n"
+                    f"{words}"
+                )   
 
 if __name__ == '__main__':
     main()
