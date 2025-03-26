@@ -863,34 +863,33 @@
     pop($t0)
 .end_macro
 
+.macro sleep(%millis)
+    push($a0)
+    li $v0 32
+    li $a0 %millis
+    syscall
+    pop($a0)
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
     draw_background()
     
-    do:
-    li $v0 32
-    li $a0 150
-    syscall
-    
-    do_gravity(board)
-    set_x_i(0)
-    set_y_i(0)
-    draw_asset(asset_bottle_size, asset_bottle_data)
-    draw_board(board)
-    
-    blit()
-    
-    li $v0 32
-    li $a0 150
-    syscall
-    remove_connected(board)
-    remove_connected_horizontal(board)
     generate_random_pill()
-    move $t1 $t0
-    set_x_i(0)
-    set_y_i(0)
-    draw_asset(asset_bottle_size, asset_bottle_data)
-    draw_board(board)
-    blit()
-    j do
+    
+    game_loop:
+        remove_connected(board)
+        remove_connected_horizontal(board)
+        do_gravity(board)
+        
+        set_x_i(0)
+        set_y_i(0)
+        draw_asset(asset_bottle_size, asset_bottle_data)
+        draw_board(board)
+        blit()
+        
+        li $v0 32
+        li $a0 150
+        syscall
+    j game_loop
