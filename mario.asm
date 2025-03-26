@@ -12,6 +12,8 @@
     color_black: .word 0b0
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
+    render_buffer: .space 229376
+    render_buffer_size: .word 229376
     trolo1: .space 10000000
     .include "board.c"
     trolo2: .space 10000000
@@ -140,7 +142,7 @@
     li $t3 4
     mul $t0 $t0 $t3
     
-    lw $t2 disp_addr
+    la $t2 render_buffer
     add $t2 $t2 $t0
     
     sw $s7, 0($t2)
@@ -777,30 +779,50 @@
     pop($t0)
 .end_macro
 
+.macro blit()
+    push($t0)
+    push($t1)
+    push($t2)
+    
+    lw $t0 render_buffer_size      # Load the size of the render buffer (in bytes)
+    la $t1 render_buffer           # Load the address of the render buffer
+    lw $t2 disp_addr               # Load the address of the display buffer
+    srl $t0 $t0 2                # Divide size by 4 to get number of words to copy
+  
+    blit_loop:
+        beqz $t0 blit_done          # If size is zero, we're done
+        lw $t3 0($t1)               # Load word from render buffer
+        sw $t3 0($t2)               # Store word to display buffer
+        addiu $t1 $t1 4            # Advance render buffer pointer
+        addiu $t2 $t2 4            # Advance display buffer pointer
+        subu $t0 $t0 1             # Decrement word count
+        j blit_loop                  # Repeat loop
+    blit_done:
+    
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
     draw_background()
-        
-    set_x_i(0)
-    set_y_i(0)
-    draw_asset(asset_bottle_size, asset_bottle_data)
-    
-    draw_board(board)
-    remove_connected(board)
-    remove_connected_horizontal(board)
     
     do:
     li $v0 32
-    li $a0 1000
+    li $a0 150
     syscall
     do_gravity(board)
     set_x_i(0)
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     draw_board(board)
+    blit()
+    
     li $v0 32
-    li $a0 100
+    li $a0 150
     syscall
     remove_connected(board)
     remove_connected_horizontal(board)
@@ -809,4 +831,5 @@
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     draw_board(board)
+    blit()
     j do
