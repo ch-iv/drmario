@@ -397,14 +397,14 @@
     beq $t0 $zero zero_memory 
     
     # Handle each direction of pill
-    andi $t8 $t6 0b00100000     # is it a left sided pill?
-    bgtz $t8 remove_left_pill
-    andi $t8 $t6 0b00010000     # is it a right sided pill?
-    bgtz $t8 remove_right_pill
-    andi $t8 $t6 0b00001000     # is it a top sided pill?
-    bgtz $t8 remove_top_pill
-    andi $t8 $t6 0b00000100     # is it a bottom sided pill?
-    bgtz $t8 remove_left_pill
+    andi $t1 $t0 0b00100000     # is it a left sided pill?
+    bgtz $t1 remove_left_pill
+    andi $t1 $t0 0b00010000     # is it a right sided pill?
+    bgtz $t1 remove_right_pill
+    andi $t1 $t0 0b00001000     # is it a top sided pill?
+    bgtz $t1 remove_top_pill
+    andi $t1 $t0 0b00000100     # is it a bottom sided pill?
+    bgtz $t1 remove_bottom_pill
     j zero_memory
     
     remove_left_pill:
@@ -412,6 +412,7 @@
         lw $t2 12(%cell_addr)   # holding the sprite type
         andi $t2 $t2 0b11000011 # remove previous pill type
         ori $t2 $t2 0b00000010  # set to a single pill
+        sw $t2 12(%cell_addr)
         subi %cell_addr %cell_addr 32
         j zero_memory
     remove_right_pill:
@@ -419,6 +420,7 @@
         lw $t2 12(%cell_addr)   # holding the sprite type
         andi $t2 $t2 0b11000011 # remove previous pill type
         ori $t2 $t2 0b00000010  # set to a single pill
+        sw $t2 12(%cell_addr)
         addi %cell_addr %cell_addr 32
         j zero_memory
     remove_top_pill:
@@ -426,6 +428,7 @@
         lw $t2 12(%cell_addr)   # holding the sprite type
         andi $t2 $t2 0b11000011 # remove previous pill type
         ori $t2 $t2 0b00000010  # set to a single pill
+        sw $t2 12(%cell_addr)
         subi %cell_addr %cell_addr 256
         j zero_memory
     remove_bottom_pill:
@@ -433,6 +436,7 @@
         lw $t2 12(%cell_addr)   # holding the sprite type
         andi $t2 $t2 0b11000011 # remove previous pill type
         ori $t2 $t2 0b00000010  # set to a single pill
+        sw $t2 12(%cell_addr)
         addi %cell_addr %cell_addr 256
         j zero_memory
     
@@ -570,6 +574,7 @@
     
     draw_board(board)
     remove_connected(board)
+    move $t1 $t0
     set_x_i(0)
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
