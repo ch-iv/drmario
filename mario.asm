@@ -441,10 +441,14 @@
         j zero_memory
     
     zero_memory:
-        sw $zero 0(%cell_addr)
-        sw $zero 4(%cell_addr)
+        # sw $zero 0(%cell_addr)
+        # sw $zero 4(%cell_addr)
         sw $zero 8(%cell_addr)
         sw $zero 12(%cell_addr)
+        sw $zero 16(%cell_addr)
+        sw $zero 20(%cell_addr)
+        sw $zero 24(%cell_addr)
+        sw $zero 28(%cell_addr)
     
     pop($t2)
     pop($t1)
@@ -516,6 +520,216 @@
     pop($t0)
 .end_macro
 
+.macro remove_connected_horizontal(%board_addr)
+    push($t0)
+    push($t1)
+    push($t2)
+    push($t3)
+    push($t4)
+    push($t5)
+    push($t6)
+    push($t7)
+    push($t8)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                la $t2 board
+                li $t3 256
+                mul $t3 $t3 $t1
+                add $t2 $t2 $t3
+                li $t3 32
+                mul $t3 $t3 $t0
+                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
+                
+                lw $t5 8($t2)   # sprite color (not a hex code)    
+                
+                li $t6 3
+                anding_color:
+                    subi $t2 $t2 32
+                    lw $t7 8($t2)
+                    and $t5 $t5 $t7
+                    subi $t6 $t6 1
+                    bgtz $t6 anding_color
+                
+                beq $t5 $zero remove_conntected_continue
+                
+                li $t6 4
+                removing_cells:
+                    move $a0 $t2    # a0 stores the adress of the cell to remove
+                    remove_cell($a0)
+                    addi $t2 $t2 32    # jump to the cell to the right
+                    
+                    subi $t6 $t6 1
+                    bgtz $t6 removing_cells
+                
+                remove_conntected_continue:
+                subi $t0 $t0 1
+                li $t6 3
+                bge $t0 $t6 draw_board_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_board_loop_y
+    
+    pop($t8)
+    pop($t7)
+    pop($t6)
+    pop($t5)
+    pop($t4)
+    pop($t3)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro try_drop_cell(%cell_addr)
+    push($t0)
+    push($t1)
+    push($t2)
+    
+    # We do not drop right pills
+    lw $t0 12(%cell_addr)
+    
+    andi $t1 $t0 0b00100000     # is it a left sided pill?
+    bgtz $t1 drop_left_pill
+    andi $t1 $t0 0b00001000     # is it a top sided pill?
+    bgtz $t1 drop_bottom_or_top
+    andi $t1 $t0 0b00000100     # is it a bottom sided pill?
+    bgtz $t1 drop_bottom_or_top
+    andi $t1 $t0 0b00000010     # is it a single sided pill?
+    bgtz $t1 drop_bottom_or_top
+    j exit_try_drop_cell
+    
+    drop_left_pill:
+        move $t2 %cell_addr
+        addi $t2 $t2 256  # t2 now points to the cell below
+        lw $t1 12($t2)           # t1 is now a sprite type. It is greater than 0 if there is something under the pill we are trying to drop
+        addi $t2 $t2 32     # t2 points at the cell below and to the right
+        lw $t0 12($t2)  # sprite type
+        add $t1 $t1 $t0
+        bgtz $t1 exit_try_drop_cell     # there is support - do not drop the pill.
+        
+        subi $t2 $t2 32
+        lw $t1 8(%cell_addr)
+        sw $t1 8($t2)
+        sw $zero 8(%cell_addr)
+        lw $t1 12(%cell_addr)
+        sw $t1 12($t2)
+        sw $zero 12(%cell_addr)
+        lw $t1 16(%cell_addr)
+        sw $t1 16($t2)
+        sw $zero 16(%cell_addr)
+        lw $t1 20(%cell_addr)
+        sw $t1 20($t2)
+        sw $zero 20(%cell_addr)
+        lw $t1 24(%cell_addr)
+        sw $t1 24($t2)
+        sw $zero 24(%cell_addr)
+        lw $t1 28(%cell_addr)
+        sw $t1 28($t2)
+        sw $zero 28(%cell_addr)
+        
+        addi $t2 $t2 32
+        addi %cell_addr %cell_addr 32 
+        lw $t1 8(%cell_addr)
+        sw $t1 8($t2)
+        sw $zero 8(%cell_addr)
+        lw $t1 12(%cell_addr)
+        sw $t1 12($t2)
+        sw $zero 12(%cell_addr)
+        lw $t1 16(%cell_addr)
+        sw $t1 16($t2)
+        sw $zero 16(%cell_addr)
+        lw $t1 20(%cell_addr)
+        sw $t1 20($t2)
+        sw $zero 20(%cell_addr)
+        lw $t1 24(%cell_addr)
+        sw $t1 24($t2)
+        sw $zero 24(%cell_addr)
+        lw $t1 28(%cell_addr)
+        sw $t1 28($t2)
+        sw $zero 28(%cell_addr)
+        
+        j exit_try_drop_cell
+    drop_bottom_or_top:
+        move $t2 %cell_addr
+        addi $t2 $t2 256  # t2 now points to the cell below
+        lw $t1 12($t2)           # t1 is now a sprite type. It is greater than 0 if there is something under the pill we are trying to drop
+        bgtz $t1 exit_try_drop_cell     # there is support - do not drop the pill.
+        
+        # copy over info
+        lw $t1 8(%cell_addr)
+        sw $t1 8($t2)
+        sw $zero 8(%cell_addr)
+        lw $t1 12(%cell_addr)
+        sw $t1 12($t2)
+        sw $zero 12(%cell_addr)
+        lw $t1 16(%cell_addr)
+        sw $t1 16($t2)
+        sw $zero 16(%cell_addr)
+        lw $t1 20(%cell_addr)
+        sw $t1 20($t2)
+        sw $zero 20(%cell_addr)
+        lw $t1 24(%cell_addr)
+        sw $t1 24($t2)
+        sw $zero 24(%cell_addr)
+        lw $t1 28(%cell_addr)
+        sw $t1 28($t2)
+        sw $zero 28(%cell_addr)
+    exit_try_drop_cell:
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro do_gravity(%board)
+    push($t0)
+    push($t1)
+    push($t2)
+    push($t3)
+    push($t4)
+    push($t5)
+    push($t6)
+    push($t7)
+    push($t8)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    subi $t1 $t1 1  # we don't do gravity on last row
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                la $t2 board
+                li $t3 256
+                mul $t3 $t3 $t1
+                add $t2 $t2 $t3
+                li $t3 32
+                mul $t3 $t3 $t0
+                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
+                
+                move $a0 $t2
+                try_drop_cell($a0)
+
+                subi $t0 $t0 1
+                bgez $t0 draw_board_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_board_loop_y
+    
+    pop($t8)
+    pop($t7)
+    pop($t6)
+    pop($t5)
+    pop($t4)
+    pop($t3)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
 .macro iter(%board)
     push($t0)
     push($t1)
@@ -574,8 +788,25 @@
     
     draw_board(board)
     remove_connected(board)
+    remove_connected_horizontal(board)
+    
+    do:
+    li $v0 32
+    li $a0 1000
+    syscall
+    do_gravity(board)
+    set_x_i(0)
+    set_y_i(0)
+    draw_asset(asset_bottle_size, asset_bottle_data)
+    draw_board(board)
+    li $v0 32
+    li $a0 100
+    syscall
+    remove_connected(board)
+    remove_connected_horizontal(board)
     move $t1 $t0
     set_x_i(0)
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     draw_board(board)
+    j do
