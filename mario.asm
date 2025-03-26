@@ -804,6 +804,64 @@
     pop($t0)
 .end_macro
 
+.macro rand(%max)
+    push($a0)
+    push($a1)
+    
+    li $v0 42
+    li $a0 0
+    li $a1 %max
+    syscall
+    move $v0 $a0
+    
+    pop($a1)
+    pop($a0)
+.end_macro
+
+.macro rand_pill_color()
+    push($t0)
+    rand(3)
+    
+    beq $v0 $zero rand_color_red
+    li $t0 1
+    beq $v0 $t0 rand_color_blue
+    li $t0 2
+    beq $v0 $t0 rand_color_yellow
+    
+    rand_color_red:
+        li $v0 0b00000001 
+        j rand_color_exit
+    rand_color_blue:
+        li $v0 0b00000010
+        j rand_color_exit
+    rand_color_yellow:
+        li $v0 0b00000100 
+        j rand_color_exit
+    rand_color_exit:
+    pop($t0)
+.end_macro
+
+.macro generate_random_pill()
+    push($t0)
+    push($t1)
+    push($t2)
+    la $t0 board
+    addi $t0 $t0 96 # points to center left pill
+    addi $t1 $t0 32 # points to center right pill
+    
+    rand_pill_color()
+    sw $v0 8($t0)
+    li $t2 0b01100000   # left pill
+    sw $t2 12($t0)
+    
+    rand_pill_color()
+    sw $v0 8($t1)
+    li $t2 0b01010000   # right pill
+    sw $t2 12($t1)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
 
 .text
     set_color_w(background_color)
@@ -814,11 +872,13 @@
     li $v0 32
     li $a0 150
     syscall
+    
     do_gravity(board)
     set_x_i(0)
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     draw_board(board)
+    
     blit()
     
     li $v0 32
@@ -826,6 +886,7 @@
     syscall
     remove_connected(board)
     remove_connected_horizontal(board)
+    generate_random_pill()
     move $t1 $t0
     set_x_i(0)
     set_y_i(0)
