@@ -49,90 +49,19 @@ def write_board(board, rows, cols, size):
         f.write(f"board_width_minus_one: .word {cols-1}\n")
         f.write(f"board: .word {'\n'.join(cells)}")
 
-rows = 18
-columns = 18
-board = [[Cell(j*8 + 12*8, i*8+9*8) for j in range(rows)] for i in range(columns)]
+rows = 16
+columns = 8
+board = [[Cell(j*8 + 12*8, i*8+9*8) for j in range(columns)] for i in range(rows)]
 
+for y in range(rows):
+    for x in range(columns):
+        board[y][x].sprite1 |= 1 << 6
+        board[y][x].sprite1 |= 1 << 1
+        board[y][x].sprite0 |= 1
 board[0][0].sprite1 |= 1 << 6
-board[0][0].sprite1 |= 1 << 5
-board[0][0].sprite0 |= 1
-
-board[0][1].sprite1 |= 1 << 6
-board[0][1].sprite1 |= 1 << 4
-board[0][1].sprite0 |= 1
-
-board[1][0].sprite1 |= 1 << 6
-board[1][0].sprite1 |= 1 << 5
-board[1][0].sprite0 |= 1 << 1
-
-board[1][1].sprite1 |= 1 << 6
-board[1][1].sprite1 |= 1 << 4
-board[1][1].sprite0 |= 1 << 1
-
-board[2][0].sprite1 |= 1 << 6
-board[2][0].sprite1 |= 1 << 5
-board[2][0].sprite0 |= 1 << 2
-
-board[2][1].sprite1 |= 1 << 6
-board[2][1].sprite1 |= 1 << 4
-board[2][1].sprite0 |= 1 << 2
-
-board[3][0].sprite1 |= 1 << 6
-board[3][0].sprite1 |= 1 << 3
-board[3][0].sprite0 |= 1
-
-board[4][0].sprite1 |= 1 << 6
-board[4][0].sprite1 |= 1 << 2
-board[4][0].sprite0 |= 1
-
-board[3][1].sprite1 |= 1 << 6
-board[3][1].sprite1 |= 1 << 1
-board[3][1].sprite0 |= 1
-
-board[4][1].sprite1 |= 1 << 6
-board[4][1].sprite1 |= 1
-board[4][1].sprite0 |= 1
-
-board[3][2].sprite1 |= 1 << 6
-board[3][2].sprite1 |= 1 << 3
-board[3][2].sprite0 |= 1 << 1
-
-board[4][2].sprite1 |= 1 << 6
-board[4][2].sprite1 |= 1 << 2
-board[4][2].sprite0 |= 1 << 1
-
-board[3][3].sprite1 |= 1 << 6
-board[3][3].sprite1 |= 1 << 1
-board[3][3].sprite0 |= 1 << 2
-
-board[4][3].sprite1 |= 1 << 6
-board[4][3].sprite1 |= 1
-board[4][3].sprite0 |= 1 << 2
-
-board[3][4].sprite1 |= 1 << 6
-board[3][4].sprite1 |= 1 << 3
-board[3][4].sprite0 |= 1
-
-board[4][4].sprite1 |= 1 << 6
-board[4][4].sprite1 |= 1 << 2
-board[4][4].sprite0 |= 1
-
-board[3][5].sprite1 |= 1 << 6
-board[3][5].sprite1 |= 1 << 1
-board[3][5].sprite0 |= 1
-
-board[4][5].sprite1 |= 1 << 6
-board[4][5].sprite1 |= 1
-board[4][5].sprite0 |= 1
-
-board[16][6].sprite1 |= 1 << 6
-board[16][6].sprite1 |= 1 << 1
-board[16][6].sprite0 |= 1
-
-board[15][6].sprite1 |= 1 << 6
-board[15][6].sprite1 |= 1
-board[15][6].sprite0 |= 1
-
+board[0][0].sprite1 |= 1 << 1
+board[0][0].sprite0 &= 0
+board[0][0].sprite0 |= 1 << 1
 
 
 print_table(board)

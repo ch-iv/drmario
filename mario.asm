@@ -154,6 +154,9 @@
 .macro draw_background()
     push_zero($t0)
     push_zero($t1)
+    push($t2)
+    push($t3)
+    push($t4)
     
     li $t0 31
     li $t1 27
@@ -179,7 +182,9 @@
                 bgez $t0 draw_background_loop_x
         subi $t1 $t1 1
         bgez $t1 draw_background_loop_y
-    
+    pop($t4)
+    pop($t3)
+    pop($t2)
     pop($t1)
     pop($t0)
 .end_macro
@@ -201,25 +206,6 @@
     pop($s2)
 .end_macro
 
-.macro draw_capsule()
-    push($s0)
-    push($s1)
-    push($t0)
-    
-    set_color_w(dark_blue)
-    li $a0 16
-    draw_square($a0)
-    
-    set_color_w(turquoise)
-    li $t0 16
-    sub $s0 $s0 $t0
-    li $a0 16
-    draw_square($a0)
-    
-    pop($t0)
-    pop($s1)
-    pop($s0)
-.end_macro
 
 .macro draw_asset(%asset_size, %asset_data)
     push($t0)
@@ -247,6 +233,11 @@
     push($t1)
     push($t2)
     push($t3)
+    push($t4)
+    push($t5)
+    push($t6)
+    push($t7)
+    push($t8)
     
     lw $t0 board_width    # x iteration variable
     lw $t1 board_height   # y iteration variable
@@ -255,10 +246,10 @@
     draw_board_loop_y:
         lw $t0 board_width
         draw_board_loop_x:
-                lb $s0 0($t2)   # x offset
-                lb $s1 4($t2)   # y offset
-                lb $t5 8($t2)   # sprite color (not a hex code)
-                lb $t6 12($t2)  # sprite type
+                lw $s0 0($t2)   # x offset
+                lw $s1 4($t2)   # y offset
+                lw $t5 8($t2)   # sprite color (not a hex code)
+                lw $t6 12($t2)  # sprite type
                 
                 andi $t7 $t6 0b01000000     # is it a pill?
                 blez $t7 not_a_pill
@@ -378,12 +369,190 @@
                     j not_a_pill    # done rendering the pill
                     
                 not_a_pill:
-                addi $t2 $t2 32
-                subi $t0 $t0 1
-                bgtz $t0 draw_board_loop_x
+                    addi $t2 $t2 32
+                    subi $t0 $t0 1
+                    bgtz $t0 draw_board_loop_x
         subi $t1 $t1 1
         bgtz $t1 draw_board_loop_y
     
+    pop($t8)
+    pop($t7)
+    pop($t6)
+    pop($t5)
+    pop($t4)
+    pop($t3)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro remove_cell(%cell_addr)
+    push($t0)
+    push($t1)
+    push($t2)
+    
+    lw $t0 12(%cell_addr)  # sprite type
+    andi $t0 $t0 0b00111100 # greater than 0 if this a left, right, top, or bottom pill
+                            # we do not care for other cases, because we can just zero out the memory
+    beq $t0 $zero zero_memory 
+    
+    # Handle each direction of pill
+    andi $t8 $t6 0b00100000     # is it a left sided pill?
+    bgtz $t8 remove_left_pill
+    andi $t8 $t6 0b00010000     # is it a right sided pill?
+    bgtz $t8 remove_right_pill
+    andi $t8 $t6 0b00001000     # is it a top sided pill?
+    bgtz $t8 remove_top_pill
+    andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+    bgtz $t8 remove_left_pill
+    j zero_memory
+    
+    remove_left_pill:
+        addi %cell_addr %cell_addr 32   # cell_addr is pointing to the cell to the right of our original cell
+        lw $t2 12(%cell_addr)   # holding the sprite type
+        andi $t2 $t2 0b11000011 # remove previous pill type
+        ori $t2 $t2 0b00000010  # set to a single pill
+        subi %cell_addr %cell_addr 32
+        j zero_memory
+    remove_right_pill:
+        subi %cell_addr %cell_addr 32   # cell_addr is pointing to the cell to the right of our original cell
+        lw $t2 12(%cell_addr)   # holding the sprite type
+        andi $t2 $t2 0b11000011 # remove previous pill type
+        ori $t2 $t2 0b00000010  # set to a single pill
+        addi %cell_addr %cell_addr 32
+        j zero_memory
+    remove_top_pill:
+        addi %cell_addr %cell_addr 256   # cell_addr is pointing to the cell to the right of our original cell
+        lw $t2 12(%cell_addr)   # holding the sprite type
+        andi $t2 $t2 0b11000011 # remove previous pill type
+        ori $t2 $t2 0b00000010  # set to a single pill
+        subi %cell_addr %cell_addr 256
+        j zero_memory
+    remove_bottom_pill:
+        subi %cell_addr %cell_addr 256   # cell_addr is pointing to the cell to the right of our original cell
+        lw $t2 12(%cell_addr)   # holding the sprite type
+        andi $t2 $t2 0b11000011 # remove previous pill type
+        ori $t2 $t2 0b00000010  # set to a single pill
+        addi %cell_addr %cell_addr 256
+        j zero_memory
+    
+    zero_memory:
+        sw $zero 0(%cell_addr)
+        sw $zero 4(%cell_addr)
+        sw $zero 8(%cell_addr)
+        sw $zero 12(%cell_addr)
+    
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro remove_connected(%board)
+    push($t0)
+    push($t1)
+    push($t2)
+    push($t3)
+    push($t4)
+    push($t5)
+    push($t6)
+    push($t7)
+    push($t8)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                la $t2 board
+                li $t3 256
+                mul $t3 $t3 $t1
+                add $t2 $t2 $t3
+                li $t3 32
+                mul $t3 $t3 $t0
+                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
+                
+                lw $t5 8($t2)   # sprite color (not a hex code)    
+                
+                li $t6 3
+                anding_color:
+                    subi $t2 $t2 256
+                    lw $t7 8($t2)
+                    and $t5 $t5 $t7
+                    subi $t6 $t6 1
+                    bgtz $t6 anding_color
+                
+                beq $t5 $zero remove_conntected_continue
+                
+                li $t6 4
+                removing_cells:
+                    move $a0 $t2    # a0 stores the adress of the cell to remove
+                    remove_cell($a0)
+                    addi $t2 $t2 256    # jump to the row below
+                    
+                    subi $t6 $t6 1
+                    bgtz $t6 removing_cells
+                
+                remove_conntected_continue:
+                subi $t0 $t0 1
+                bgez $t0 draw_board_loop_x
+        subi $t1 $t1 1
+        li $t0 3
+        bge $t1 $t0 draw_board_loop_y
+    
+    pop($t8)
+    pop($t7)
+    pop($t6)
+    pop($t5)
+    pop($t4)
+    pop($t3)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro iter(%board)
+    push($t0)
+    push($t1)
+    push($t2)
+    push($t3)
+    push($t4)
+    push($t5)
+    push($t6)
+    push($t7)
+    push($t8)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                la $t2 board
+                li $t3 256
+                mul $t3 $t3 $t1
+                add $t2 $t2 $t3
+                li $t3 32
+                mul $t3 $t3 $t0
+                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
+                
+                lw $s0 0($t2)   # x offset
+                lw $s1 4($t2)   # y offset
+                lw $t5 8($t2)   # sprite color (not a hex code)
+                lw $t6 12($t2)  # sprite type
+                
+                subi $t0 $t0 1
+                bgez $t0 draw_board_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_board_loop_y
+    
+    pop($t8)
+    pop($t7)
+    pop($t6)
+    pop($t5)
+    pop($t4)
     pop($t3)
     pop($t2)
     pop($t1)
@@ -399,30 +568,9 @@
     set_y_i(0)
     draw_asset(asset_bottle_size, asset_bottle_data)
     
-    # set_x_i(128)
-    # set_y_i(100)
-    # draw_asset(asset_pill_red_left_size, asset_pill_red_left_data)
-    
-    # set_x_i(136)
-    # set_y_i(100)
-    # draw_asset(asset_pill_red_right_size, asset_pill_red_right_data)
-    
-    # set_x_i(96)
-    # set_y_i(192)
-    # draw_asset(asset_pill_blue_left_size, asset_pill_blue_left_data)
-    
-    # set_x_i(104)
-    # set_y_i(192)
-    # draw_asset(asset_pill_pink_right_size, asset_pill_pink_right_data)
-    
-    # set_x_i(112)
-    # set_y_i(192)
-    # draw_asset(asset_pill_yellow_left_size, asset_pill_yellow_left_data)
-    
-    # set_x_i(120)
-    # set_y_i(192)
-    # draw_asset(asset_pill_yellow_right_size, asset_pill_yellow_right_data)
-    # set_x_i(72)
-    # set_y_i(72)
     draw_board(board)
-
+    remove_connected(board)
+    set_x_i(0)
+    set_y_i(0)
+    draw_asset(asset_bottle_size, asset_bottle_data)
+    draw_board(board)
