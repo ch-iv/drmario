@@ -12,6 +12,7 @@
     color_black: .word 0b0
     color_purple: .word 0x5500b2
     color_dark_purple: .word 0x2e0061
+    keyboard_address: .word 0xffff0000
     render_buffer: .space 229376
     render_buffer_size: .word 229376
     trolo1: .space 10000000
@@ -240,6 +241,10 @@
     push($t6)
     push($t7)
     push($t8)
+    
+    set_x_i(0)
+    set_y_i(0)
+    draw_asset(asset_bottle_size, asset_bottle_data)
     
     lw $t0 board_width    # x iteration variable
     lw $t1 board_height   # y iteration variable
@@ -871,25 +876,87 @@
     pop($a0)
 .end_macro
 
+.macro tick_set_zero()
+    li $s6 0
+.end_macro
+
+.macro tick_sleep()
+    push($t0)
+    sleep(1)
+    addi $s6 $s6 1
+    li $t0 1024    
+    
+    bge $s6 $t0 set_zero
+    j tick_sleep_exit
+    
+    set_zero:
+        li $s6 0
+    
+    tick_sleep_exit:
+    pop($t0)
+.end_macro
+
+.macro on_tick(%tick, %label)
+    push($t0)
+    li $t0 %tick
+    div $s6 $t0
+    mfhi $t0
+    bne $t0 $zero %label
+    pop($t0)
+.end_macro
+
+.macro check_kb()
+    push($t0)
+    push($t1)
+    
+    lw $t0 keyboard_address
+    lw $t1 0($t0)
+    bne $t1 1 check_kb_exit
+    lw $t1 4($t0)
+    beq $t1 0x72 handle_q
+    j check_kb_exit
+    
+    handle_q:
+        generate_random_pill()
+        draw_board(board)
+        blit()
+        j check_kb_exit
+    
+    check_kb_exit:
+    pop($t1)
+    pop($t0)
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
     draw_background()
     
-    generate_random_pill()
+    set_x_i(0)
+    set_y_i(0)
+    draw_asset(asset_bottle_size, asset_bottle_data)
+    draw_board(board)
+    blit()
     
+    tick_set_zero()
     game_loop:
-        remove_connected(board)
-        remove_connected_horizontal(board)
-        do_gravity(board)
+        on_tick(1, check_kb_cont)
+            check_kb()
+        check_kb_cont:
         
-        set_x_i(0)
-        set_y_i(0)
-        draw_asset(asset_bottle_size, asset_bottle_data)
-        draw_board(board)
-        blit()
+        on_tick(256, remove_cont)
+            remove_connected(board)
+            remove_connected_horizontal(board)
+            do_gravity(board)
+            draw_board(board)
+            blit()
+        remove_cont:
         
-        li $v0 32
-        li $a0 150
-        syscall
+        on_tick(1024, gen_pill_cont)
+            # generate_random_pill()
+            # draw_board(board)
+            # blit()
+        gen_pill_cont:
+        
+        tick_sleep()
     j game_loop
