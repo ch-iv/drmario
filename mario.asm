@@ -639,6 +639,10 @@
         sw $t1 28($t2)
         sw $zero 28(%cell_addr)
         
+        bne $s4 %cell_addr do_not_set_current_left_pill
+        move $s4 $t2    # set current pill pointer for left to the value after gravity
+        do_not_set_current_left_pill:
+        
         addi $t2 $t2 32
         addi %cell_addr %cell_addr 32 
         lw $t1 8(%cell_addr)
@@ -659,6 +663,10 @@
         lw $t1 28(%cell_addr)
         sw $t1 28($t2)
         sw $zero 28(%cell_addr)
+        
+        bne $s5 %cell_addr do_not_set_current_left_right
+        move $s5 $t2    # set current pill pointer for right to the value after gravity
+        do_not_set_current_left_right:
         
         j exit_try_drop_cell
     drop_bottom_or_top:
@@ -853,6 +861,8 @@
     la $t0 board
     addi $t0 $t0 96 # points to center left pill
     addi $t1 $t0 32 # points to center right pill
+    move $s4 $t0
+    move $s5 $t1
     
     rand_pill_color()
     sw $v0 8($t0)
@@ -905,6 +915,35 @@
     pop($t0)
 .end_macro
 
+.macro move_right()
+    
+.end_macro
+
+.macro is_vertical()
+    sub $v0 $s5 $s4
+    srl $v0 $v0 8
+.end_macro
+
+.macro rotate()
+    push($v0)
+    # left < right
+    # top < bottom
+    # left -> top
+    # right -> bottom
+    is_vertical()
+    beq $v0 $zero rotate_horizontal
+    bne $v0 $zero rotate_vertical
+    
+    rotate_horizontal:
+        j rotate_exit
+    
+    rotate_vertical:
+        j rotate_exit
+    
+    rotate_exit:
+    pop($v0)
+.end_macro
+
 .macro check_kb()
     push($t0)
     push($t1)
@@ -912,14 +951,25 @@
     lw $t0 keyboard_address
     lw $t1 0($t0)
     bne $t1 1 check_kb_exit
-    lw $t1 4($t0)
+    lw $t1 4($t0)   # hold value of the key that has been pressed
+    
     beq $t1 0x72 handle_q
+    beq $t1 0x72 handle_w
+    beq $t1 0x64 handle_d
     j check_kb_exit
     
     handle_q:
         generate_random_pill()
         draw_board(board)
         blit()
+        j check_kb_exit
+    
+    handle_d:
+        move_right()
+        j check_kb_exit
+        
+    handle_w:
+        rotate()
         j check_kb_exit
     
     check_kb_exit:
@@ -937,7 +987,7 @@
     draw_asset(asset_bottle_size, asset_bottle_data)
     draw_board(board)
     blit()
-    
+    generate_random_pill()
     tick_set_zero()
     game_loop:
         on_tick(1, check_kb_cont)
