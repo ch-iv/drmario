@@ -927,10 +927,6 @@
     pop($t0)
 .end_macro
 
-.macro move_right()
-    
-.end_macro
-
 .macro is_vertical()
     sub $v0 $s5 $s4
     srl $v0 $v0 8
@@ -1040,6 +1036,54 @@
     pop($v0)
 .end_macro
 
+.macro move_right()
+    move $t0 $s4
+    move $t1 $s5
+    
+    addi $s4 $s4 32
+    addi $s5 $s5 32
+    
+    move $a0 $s5
+    move $a1 $t1
+    move_pill($a0, $a1)
+    
+    move $a0 $s4
+    move $a1 $t0
+    move_pill($a0, $a1)
+.end_macro
+
+.macro move_left()
+    move $t0 $s4
+    move $t1 $s5
+    
+    subi $s4 $s4 32
+    subi $s5 $s5 32
+    
+    move $a0 $s4
+    move $a1 $t0
+    move_pill($a0, $a1)
+    
+    move $a0 $s5
+    move $a1 $t1
+    move_pill($a0, $a1)
+.end_macro
+
+.macro move_down()
+    move $t0 $s4
+    move $t1 $s5
+    
+    addi $s4 $s4 256
+    addi $s5 $s5 256
+    
+    move $a0 $s5
+    move $a1 $t1
+    move_pill($a0, $a1)
+    
+    move $a0 $s4
+    move $a1 $t0
+    move_pill($a0, $a1)
+.end_macro
+
 .macro check_kb()
     push($t0)
     push($t1)
@@ -1052,6 +1096,8 @@
     beq $t1 0x72 handle_q
     beq $t1 0x77 handle_w
     beq $t1 0x64 handle_d
+    beq $t1 0x61 handle_a
+    beq $t1 0x73 handle_s
     j check_kb_exit
     
     handle_q:
@@ -1063,10 +1109,24 @@
     
     handle_d:
         move_right()
+        draw_board(board)
+        blit()
         j check_kb_exit
         
     handle_w:
         rotate()
+        j check_kb_exit
+        
+    handle_a:
+        move_left()
+        draw_board(board)
+        blit()
+        j check_kb_exit
+    
+    handle_s:
+        move_down()
+        draw_board(board)
+        blit()
         j check_kb_exit
     
     check_kb_exit:
