@@ -675,6 +675,18 @@
         lw $t1 12($t2)           # t1 is now a sprite type. It is greater than 0 if there is something under the pill we are trying to drop
         bgtz $t1 exit_try_drop_cell     # there is support - do not drop the pill.
         
+        beq %cell_addr $s4 drop_set_top
+        beq %cell_addr $s5 drop_set_right
+        j drop_set_cont
+        
+        drop_set_top:
+            addi $s4 $s4 256
+            j drop_set_cont
+        drop_set_right:
+            addi $s5 $s5 256
+            j drop_set_cont
+        
+        drop_set_cont:
         # copy over info
         lw $t1 8(%cell_addr)
         sw $t1 8($t2)
@@ -924,6 +936,58 @@
     srl $v0 $v0 8
 .end_macro
 
+.macro set_pill_left(%pill_addr)
+    push($t0)
+    li $t0 0b01100000
+    sw $t0 12(%pill_addr)
+    pop($t0)
+.end_macro
+
+.macro set_pill_right(%pill_addr)
+    push($t0)
+    li $t0 0b01010000
+    sw $t0 12(%pill_addr)
+    pop($t0)
+.end_macro
+
+.macro set_pill_top(%pill_addr)
+    push($t0)
+    li $t0 0b01001000
+    sw $t0 12(%pill_addr)
+    pop($t0)
+.end_macro
+
+.macro set_pill_bottom(%pill_addr)
+    push($t0)
+    li $t0 0b01000100
+    sw $t0 12(%pill_addr)
+    pop($t0)
+.end_macro
+
+
+.macro move_pill(%destination, %source)
+    push($t1)
+    lw $t1 8(%source)
+    sw $t1 8(%destination)
+    sw $zero 8(%source)
+    lw $t1 12(%source)
+    sw $t1 12(%destination)
+    sw $zero 12(%source)
+    lw $t1 16(%source)
+    sw $t1 16(%destination)
+    sw $zero 16(%source)
+    lw $t1 20(%source)
+    sw $t1 20(%destination)
+    sw $zero 20(%source)
+    lw $t1 24(%source)
+    sw $t1 24(%destination)
+    sw $zero 24(%source)
+    lw $t1 28(%source)
+    sw $t1 28(%destination)
+    sw $zero 28(%source)
+    pop($t1)
+.end_macro
+
 .macro rotate()
     push($v0)
     # left < right
@@ -935,12 +999,44 @@
     bne $v0 $zero rotate_vertical
     
     rotate_horizontal:
+        # we are now in horizontal mode
+        # left pointer becomes top
+        # right pointer takes place of the left pointer
+        move $t0 $s4  # original left
+        move $t1 $s5  # original right
+        
+        subi $s5 $s5 32  # right takes place of old left    THIS IS BOTTOM
+        subi $s4 $s4 256 # left becomes top THIS IS TOP
+        
+        move $a0 $s4
+        move $a1 $t0
+        move_pill($a0, $a1)
+        set_pill_top($s4)
+        
+        move $a0 $s5
+        move $a1 $t1
+        move_pill($a0, $a1)
+        set_pill_bottom($s5)
         j rotate_exit
     
     rotate_vertical:
+        move $t0 $s4  # original top
+        move $t1 $s5  # original bottom
+        
+        addi $s5 $s5 32
+        addi $s4 $s4 256
+            
+        move $a0 $s5
+        move $a1 $t0
+        move_pill($a0, $a1)
+        set_pill_right($s5)
+        
+        set_pill_left($s4)
         j rotate_exit
     
     rotate_exit:
+    draw_board(board)
+    blit()
     pop($v0)
 .end_macro
 
@@ -954,12 +1050,13 @@
     lw $t1 4($t0)   # hold value of the key that has been pressed
     
     beq $t1 0x72 handle_q
-    beq $t1 0x72 handle_w
+    beq $t1 0x77 handle_w
     beq $t1 0x64 handle_d
     j check_kb_exit
     
     handle_q:
         generate_random_pill()
+        do_gravity(board)
         draw_board(board)
         blit()
         j check_kb_exit
