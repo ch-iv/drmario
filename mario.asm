@@ -1037,6 +1037,9 @@
 .end_macro
 
 .macro move_right()
+    lw $t0 0($s5)
+    beq $t0 152 move_right_exit
+    
     move $t0 $s4
     move $t1 $s5
     
@@ -1050,9 +1053,18 @@
     move $a0 $s4
     move $a1 $t0
     move_pill($a0, $a1)
+    move_right_exit:
 .end_macro
 
 .macro move_left()
+    lw $t0 0($s4)
+    beq $t0 96 move_left_exit
+    is_occupied_sub($s4, 32)
+    bgtz $v0 move_left_exit
+    is_vertical()
+    bgtz $v0 check_vertical
+    
+    
     move $t0 $s4
     move $t1 $s5
     
@@ -1066,9 +1078,13 @@
     move $a0 $s5
     move $a1 $t1
     move_pill($a0, $a1)
+    move_left_exit:
 .end_macro
 
 .macro move_down()
+    lw $t0 4($s5)
+    beq $t0 192 move_down_exit
+    
     move $t0 $s4
     move $t1 $s5
     
@@ -1082,6 +1098,37 @@
     move $a0 $s4
     move $a1 $t0
     move_pill($a0, $a1)
+    move_down_exit:
+.end_macro
+
+.macro is_occupied_add(%base, %offset)
+    push($t0)
+    addi $t0 %base %offset
+    lw $t0 12($t0)
+    bgtz $t0 is_occupied_true
+    li $v0 0
+    j is_occupied_exit
+    
+    is_occupied_true:
+        li $v0 1
+    
+    is_occupied_exit:
+    pop($t0)
+.end_macro
+
+.macro is_occupied_sub(%base, %offset)
+    push($t0)
+    subi $t0 %base %offset
+    lw $t0 12($t0)
+    bgtz $t0 is_occupied_true
+    li $v0 0
+    j is_occupied_exit
+    
+    is_occupied_true:
+        li $v0 1
+    
+    is_occupied_exit:
+    pop($t0)
 .end_macro
 
 .macro check_kb()
