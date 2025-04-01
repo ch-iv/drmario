@@ -36,9 +36,11 @@
     .include "pill_yellow_bottom.c"
     .include "pill_yellow_single.c"
     .include "pill_yellow_empty.c"
+    tralalero: .space 100000
     .include "virus_red.c"
     .include "virus_blue.c"
     .include "virus_yellow.c"
+    tralala: .space 100000
     .include "bottle.c"
     trolo: .space 10000000
 
@@ -264,7 +266,7 @@
                 andi $t7 $t6 0b01000000     # is it a pill?
                 bgtz $t7 it_is_a_pill
                 
-                addi $7 $t6 0b10000000
+                addi $t7 $t6 0b10000000
                 bgtz $t7 it_is_a_virus
                 
                 j not_a_pill
@@ -933,7 +935,7 @@
 
 .macro tick_sleep()
     push($t0)
-    sleep(1)
+    sleep(0)
     addi $s6 $s6 1
     li $t0 1024    
     
@@ -1015,10 +1017,16 @@
 
 .macro rotate()
     push($v0)
+    push($t0)
+    push($t1)
     # left < right
     # top < bottom
     # left -> top
     # right -> bottom
+    lw $t0 4($s4)
+    li $t1 72
+    beq $t0 $t1 rotate_exit
+    
     is_vertical()
     beq $v0 $zero rotate_horizontal
     bne $v0 $zero rotate_vertical
@@ -1069,6 +1077,8 @@
     rotate_exit:
     draw_board(board)
     blit()
+    pop($t1)
+    pop($t0)
     pop($v0)
 .end_macro
 
@@ -1286,7 +1296,7 @@
     push($t0)
     
     la $t0 board
-    addi $t0 $t0 %offset
+    add $t0 $t0 %offset
     
     is_occupied_add($t0, 0)
     bgtz $v0 already_occupied
@@ -1307,6 +1317,26 @@
     pop($t0)
 .end_macro
 
+.macro spawn_n_virus(%num_to_spawn)
+    push($t0)
+    push($t1)
+    spawn_virus_loop:
+        beq $zero %num_to_spawn spawn_n_virus_exit
+        lw $t0 board
+        # addi $t0 $t0 1024
+        
+        rand(96)
+        li $t1 32
+        mul $t1 $v0 $t1
+        addi $t1 $t1 1024
+        spawn_virus($t1)
+        sub %num_to_spawn %num_to_spawn $v0
+        j spawn_virus_loop
+    spawn_n_virus_exit:
+    pop($t1)
+    pop($t0)
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
@@ -1318,6 +1348,8 @@
     draw_board(board)
     blit()
     generate_random_pill()
+    li $a0 8
+    spawn_n_virus($a0)
     tick_set_zero()
     game_loop:
         on_tick(1, check_kb_cont)
@@ -1330,8 +1362,6 @@
             remove_connected_horizontal(board)
             do_gravity(board)
             handle_handover()
-            spawn_virus(32)
-            spawn_virus(64)
             draw_board(board)
             blit()
         remove_cont:
