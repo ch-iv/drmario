@@ -996,6 +996,8 @@
     
     rotate_horizontal:
         # we are now in horizontal mode
+        is_occupied_sub($s4, 256)
+        bgtz $v0 rotate_exit
         # left pointer becomes top
         # right pointer takes place of the left pointer
         move $t0 $s4  # original left
@@ -1016,6 +1018,11 @@
         j rotate_exit
     
     rotate_vertical:
+        lw $t0 0($s5)
+        beq $t0 152 rotate_exit
+        is_occupied_add($s5, 32)
+        bgtz $v0 rotate_exit
+        
         move $t0 $s4  # original top
         move $t1 $s5  # original bottom
         
