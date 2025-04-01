@@ -1221,6 +1221,33 @@
     pop($t0)
 .end_macro
 
+.macro handle_handover()
+    # checks if the current pill with the handle has support
+    # if it does it spawns a new pill
+    is_vertical()
+    bgtz $v0 handover_vertical
+    j handover_horizontal
+
+    handover_horizontal:
+        is_occupied_add($s4, 256)
+        bgtz $v0 commit_handover
+        is_occupied_add($s5, 256)
+        bgtz $v0 commit_handover
+        
+        j handover_exit
+    
+    handover_vertical:
+        is_occupied_add($s5, 256)
+        bgtz $v0 commit_handover
+        
+        j handover_exit
+    
+    commit_handover:
+        generate_random_pill()
+        
+    handover_exit:
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
@@ -1239,9 +1266,11 @@
         check_kb_cont:
         
         on_tick(256, remove_cont)
+            handle_handover()
             remove_connected(board)
             remove_connected_horizontal(board)
             do_gravity(board)
+            handle_handover()
             draw_board(board)
             blit()
         remove_cont:
