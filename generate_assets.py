@@ -55,7 +55,7 @@ def get_input_assets() -> list[Path]:
     return list((Path(__file__).parent / "assets").iterdir())
 
 def map_color(color: tuple[int, int, int], filename: str) -> tuple[int, int, int]:
-    if filename.startswith("pill_"):
+    if filename.startswith("pill_") or filename.startswith("virus_"):
         tmp = filename.split("_")
         filename = f"{tmp[0]}_{tmp[1]}"
     color_map = {
@@ -68,6 +68,18 @@ def map_color(color: tuple[int, int, int], filename: str) -> tuple[int, int, int
             (0, 255, 0): (96, 160, 255),
         },
         "pill_red": {
+            (255, 0, 0): (216, 64, 96),
+            (0, 255, 0): (232, 208, 32),
+        },
+        "virus_blue": {
+            (255, 0, 0): (96, 160, 255),
+            (0, 255, 0): (232, 208, 32),
+        },
+        "virus_yellow": {
+            (255, 0, 0): (232, 208, 32),
+            (0, 255, 0): (96, 160, 255),
+        },
+        "virus_red": {
             (255, 0, 0): (216, 64, 96),
             (0, 255, 0): (232, 208, 32),
         },
@@ -86,7 +98,7 @@ def main():
         width, height, pixels = read_ppm(path)
         asset_name = path.name.removesuffix(".ppm")
         asset_names = [asset_name]
-        if asset_name.startswith("pill_"):
+        if asset_name.startswith("pill_") or asset_name.startswith("virus_"):
             pill = asset_name.split("_")
             asset_names = [f"{pill[0]}_{color}_{pill[1]}" for color in ["red", "blue", "yellow"]]
         for asset_name in asset_names:
@@ -107,7 +119,7 @@ def main():
                         n += 1
     
             words.removesuffix(", ")
-    
+            asset_name = asset_name.removesuffix("_")    
             with open(f"{asset_name}.c", "w") as f:
                 f.write(
                     f"asset_{asset_name}_size: .word {n}\n"

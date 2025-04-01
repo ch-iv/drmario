@@ -36,6 +36,9 @@
     .include "pill_yellow_bottom.c"
     .include "pill_yellow_single.c"
     .include "pill_yellow_empty.c"
+    .include "virus_red.c"
+    .include "virus_blue.c"
+    .include "virus_yellow.c"
     .include "bottle.c"
     trolo: .space 10000000
 
@@ -1316,7 +1319,6 @@
     blit()
     generate_random_pill()
     tick_set_zero()
-    spawn_virus(32)
     game_loop:
         on_tick(1, check_kb_cont)
             check_kb()
@@ -1328,6 +1330,8 @@
             remove_connected_horizontal(board)
             do_gravity(board)
             handle_handover()
+            spawn_virus(32)
+            spawn_virus(64)
             draw_board(board)
             blit()
         remove_cont:
