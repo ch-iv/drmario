@@ -1039,7 +1039,19 @@
 .macro move_right()
     lw $t0 0($s5)
     beq $t0 152 move_right_exit
+    is_occupied_add($s5, 32)
+    bgtz $v0 move_right_exit
+    is_vertical()
+    bgtz $v0 check_vertical
+    j continue_move_right
     
+    check_vertical:
+        is_occupied_add($s4, 32)
+        bgtz $v0 move_right_exit
+        is_occupied_add($s5, 32)
+        bgtz $v0 move_right_exit
+        
+    continue_move_right:
     move $t0 $s4
     move $t1 $s5
     
@@ -1063,8 +1075,15 @@
     bgtz $v0 move_left_exit
     is_vertical()
     bgtz $v0 check_vertical
+    j continue_move_left
     
-    
+    check_vertical:
+        is_occupied_sub($s4, 32)
+        bgtz $v0 move_left_exit
+        is_occupied_sub($s5, 32)
+        bgtz $v0 move_left_exit
+        
+    continue_move_left:
     move $t0 $s4
     move $t1 $s5
     
@@ -1084,6 +1103,20 @@
 .macro move_down()
     lw $t0 4($s5)
     beq $t0 192 move_down_exit
+    
+    is_occupied_add($s5, 256)
+    bgtz $v0 move_down_exit
+    is_vertical()
+    beq $zero $v0 check_horizontal
+    j continue_move_down
+    
+    check_horizontal:
+        is_occupied_add($s4, 256)
+        bgtz $v0 move_down_exit
+        is_occupied_add($s5, 256)
+        bgtz $v0 move_down_exit
+        
+    continue_move_down:
     
     move $t0 $s4
     move $t1 $s5
