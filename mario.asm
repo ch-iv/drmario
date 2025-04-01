@@ -259,8 +259,34 @@
                 lw $t6 12($t2)  # sprite type
                 
                 andi $t7 $t6 0b01000000     # is it a pill?
-                blez $t7 not_a_pill
+                bgtz $t7 it_is_a_pill
                 
+                addi $7 $t6 0b10000000
+                bgtz $t7 it_is_a_virus
+                
+                j not_a_pill
+                
+                it_is_a_virus:
+                    andi $t7 $t5 0b00000001     # is it red?
+                    bgtz $t7 draw_red_virus
+                    andi $t7 $t5 0b00000010     # is it blue?
+                    bgtz $t7 draw_blue_virus
+                    andi $t7 $t5 0b00000100     # is it yellow?
+                    bgtz $t7 draw_yellow_virus
+                    j not_a_pill    # neither red, blue, nor yellow
+                    
+                    draw_red_virus:
+                        draw_asset(asset_virus_red_size, asset_virus_red_data)
+                        j not_a_pill
+                    
+                    draw_blue_virus:
+                        draw_asset(asset_virus_blue_size, asset_virus_blue_data)
+                        j not_a_pill
+                        
+                    draw_yellow_virus:
+                        draw_asset(asset_virus_yellow_size, asset_virus_yellow_data)
+                        j not_a_pill
+                    
                 it_is_a_pill:
                     andi $t7 $t5 0b00000001     # is it red?
                     bgtz $t7 draw_red_pill
@@ -1224,6 +1250,10 @@
 .macro handle_handover()
     # checks if the current pill with the handle has support
     # if it does it spawns a new pill
+    lw $t0 4($s5)
+    beq $t0 192 commit_handover     # hand over if we are on the last row
+                                    # this is necessary because checking occupied below doesn't work on last row
+        
     is_vertical()
     bgtz $v0 handover_vertical
     j handover_horizontal
@@ -1248,6 +1278,32 @@
     handover_exit:
 .end_macro
 
+# Returns 1 if the spawn was successful, 0 otherwise
+.macro spawn_virus(%offset)
+    push($t0)
+    
+    la $t0 board
+    addi $t0 $t0 %offset
+    
+    is_occupied_add($t0, 0)
+    bgtz $v0 already_occupied
+    
+    rand_pill_color()
+    sw $v0 8($t0)
+    
+    li $v0 0b10000000
+    sw $v0 12($t0)
+    li $v0 1
+    j spawn_virus_exit
+    
+    already_occupied:
+        li $v0 0
+        j spawn_virus_exit
+        
+    spawn_virus_exit:
+    pop($t0)
+.end_macro
+
 .text
     set_color_w(background_color)
     lw $a0 screen_size
@@ -1260,6 +1316,7 @@
     blit()
     generate_random_pill()
     tick_set_zero()
+    spawn_virus(32)
     game_loop:
         on_tick(1, check_kb_cont)
             check_kb()
