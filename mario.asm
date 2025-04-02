@@ -21,6 +21,7 @@
     .include "board.c"
     trolo2: .space 10000000
     is_paused: .word 0
+    viruses_to_spawn: .word 1 
     .include "pill_red_left.c"
     .include "pill_red_right.c"
     .include "pill_red_top.c"
@@ -1811,6 +1812,54 @@
     get_gravity_exit:
 .end_macro
 
+.macro get_n_virses()
+    push($t0)
+    push($t1)
+    push($t2)
+    push($t3)
+    
+    lw $t0 board_width_minus_one    # x iteration variable
+    lw $t1 board_height_minus_one   # y iteration variable
+    li $v0 0
+    
+    draw_board_loop_y:
+        lw $t0 board_width_minus_one
+        draw_board_loop_x:
+                la $t2 board
+                li $t3 256
+                mul $t3 $t3 $t1
+                add $t2 $t2 $t3
+                li $t3 32
+                mul $t3 $t3 $t0
+                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
+                
+                lw $t3 12($t2)
+                srl $t3 $t3 7
+                add $v0 $v0 $t3
+                
+                subi $t0 $t0 1
+                bgez $t0 draw_board_loop_x
+        subi $t1 $t1 1
+        bgez $t1 draw_board_loop_y
+
+    pop($t3)
+    pop($t2)
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro double_viruses_to_spawn()
+  push($t0)
+  push($t1)
+  la $t0 viruses_to_spawn
+  lw $t1 0($t0)
+  sll $t1 $t1 1
+  sw $t1 0($t0)
+  move $v0 $t1
+  pop($t1)
+  pop($t0)
+.end_macro
+
 .text
     game_loop_start:
         li $t9 0    # global cycle counter
@@ -1831,11 +1880,14 @@
         draw_board(board)
         blit()
         generate_random_pill()
-        li $a0 8
+        li $a0 16
+        double_viruses_to_spawn()
+        move $a0 $v0
         spawn_n_virus($a0)
-        
         tick_set_zero()
     game_loop:
+        get_n_virses()
+        beq $v0 $zero game_loop_start
         play_music()
         draw_mario()
         draw_viruses()
@@ -1856,13 +1908,7 @@
             draw_board(board)
             blit()
         remove_cont:
-        
-        # on_tick(1024, gen_pill_cont)
-            # subi $t9 $t9 2 # increase speed of gravity (bigger = faster)
-            # bgtz $t9 gen_pill_cont
-            # li $t9 1
-        # gen_pill_cont:
-        
+                
         tick_sleep()
         j game_loop
     
