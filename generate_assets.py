@@ -98,7 +98,7 @@ def main():
         width, height, pixels = read_ppm(path)
         asset_name = path.name.removesuffix(".ppm")
         asset_names = [asset_name]
-        if asset_name.startswith("pill_") or asset_name.startswith("virus_"):
+        if asset_name.startswith("pill_"): 
             pill = asset_name.split("_")
             asset_names = [f"{pill[0]}_{color}_{pill[1]}" for color in ["red", "blue", "yellow"]]
         for asset_name in asset_names:

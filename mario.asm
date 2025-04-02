@@ -40,9 +40,12 @@
     .include "pill_yellow_single.c"
     .include "pill_yellow_empty.c"
     tralalero: .space 100000
-    .include "virus_red.c"
-    .include "virus_blue.c"
-    .include "virus_yellow.c"
+    .include "virus_red1.c"
+    .include "virus_blue1.c"
+    .include "virus_yellow1.c"
+    .include "virus_red2.c"
+    .include "virus_blue2.c"
+    .include "virus_yellow2.c"
     .include "game_over.c"
     .include "pause_screen.c"
     .include "mario1.c"
@@ -303,15 +306,39 @@
                     j not_a_pill    # neither red, blue, nor yellow
                     
                     draw_red_virus:
-                        draw_asset(asset_virus_red_size, asset_virus_red_data)
+                        andi $t7 $s6 512
+                        beq $t7 0 draw_red_virus_1
+                        j draw_red_virus_2
+                        draw_red_virus_1:
+                            draw_asset(asset_virus_red1_size, asset_virus_red1_data)
+                            j not_a_pill
+                        draw_red_virus_2:
+                            draw_asset(asset_virus_red2_size, asset_virus_red2_data)
+                            j not_a_pill
                         j not_a_pill
                     
                     draw_blue_virus:
-                        draw_asset(asset_virus_blue_size, asset_virus_blue_data)
+                        andi $t7 $s6 512
+                        beq $t7 0 draw_blue_virus_1
+                        j draw_blue_virus_2
+                        draw_blue_virus_1:
+                            draw_asset(asset_virus_blue1_size, asset_virus_blue1_data)
+                            j not_a_pill
+                        draw_blue_virus_2:
+                            draw_asset(asset_virus_blue2_size, asset_virus_blue2_data)
+                            j not_a_pill
                         j not_a_pill
                         
                     draw_yellow_virus:
-                        draw_asset(asset_virus_yellow_size, asset_virus_yellow_data)
+                        andi $t7 $s6 512
+                        beq $t7 0 draw_yellow_virus_1
+                        j draw_yellow_virus_2
+                        draw_yellow_virus_1:
+                            draw_asset(asset_virus_yellow1_size, asset_virus_yellow1_data)
+                            j not_a_pill
+                        draw_yellow_virus_2:
+                            draw_asset(asset_virus_yellow2_size, asset_virus_yellow2_data)
+                            j not_a_pill
                         j not_a_pill
                     
                 it_is_a_pill:
