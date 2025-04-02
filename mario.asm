@@ -45,6 +45,11 @@
     .include "virus_yellow.c"
     .include "game_over.c"
     .include "pause_screen.c"
+    .include "mario1.c"
+    .include "mario2.c"
+    .include "mario3.c"
+    .include "mario4.c"
+    .include "mario_bg.c"
     tralala: .space 100000
     .include "bottle.c"
     trolo: .space 10000000
@@ -1441,16 +1446,48 @@
     pop($t0)
 .end_macro
 
+.macro draw_mario()
+    set_x_i(190)
+    set_y_i(60)
+    beq $s6 0 draw_mario_1
+    beq $s6 256 draw_mario_2
+    beq $s6 512 draw_mario_3
+    beq $s6 768 draw_mario_4
+    j draw_mario_exit
+    draw_mario_1:
+        draw_asset(asset_mario1_size, asset_mario1_data)
+        blit()
+        j draw_mario_exit
+    draw_mario_2:
+        draw_asset(asset_mario2_size, asset_mario2_data)
+        blit()
+        j draw_mario_exit
+    draw_mario_3:
+        draw_asset(asset_mario3_size, asset_mario3_data)
+        blit()
+        j draw_mario_exit
+    draw_mario_4:
+        draw_asset(asset_mario4_size, asset_mario4_data)
+        blit()
+        j draw_mario_exit
+    draw_mario_exit:
+.end_macro
+
 .text
     game_loop_start:
         clear_board()
         set_color_w(background_color)
         lw $a0 screen_size
-        draw_background()
+        # draw_background()
         # end_game()
         set_x_i(0)
         set_y_i(0)
-        draw_asset(asset_bottle_size, asset_bottle_data)
+        
+        draw_asset(asset_mario_bg_size, asset_mario_bg_data)
+        
+        set_x_i(0)
+        set_y_i(0)
+        # draw_asset(asset_bottle_size, asset_bottle_data)
         draw_board(board)
         blit()
         generate_random_pill()
@@ -1459,6 +1496,7 @@
         
         tick_set_zero()
     game_loop:
+        draw_mario()
         on_tick(1, check_kb_cont)
             check_kb()
         check_kb_cont:
