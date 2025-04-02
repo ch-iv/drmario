@@ -40,6 +40,7 @@
     .include "virus_red.c"
     .include "virus_blue.c"
     .include "virus_yellow.c"
+    .include "game_over.c"
     tralala: .space 100000
     .include "bottle.c"
     trolo: .space 10000000
@@ -904,6 +905,14 @@
     la $t0 board
     addi $t0 $t0 96 # points to center left pill
     addi $t1 $t0 32 # points to center right pill
+    
+    li $v0 0
+    li $v1 0
+    is_occupied_add($t0, 0)
+    move $v1 $v0
+    is_occupied_add($t1, 0)
+    or $v1 $v0 $v1
+    
     move $s4 $t0
     move $s5 $t1
     
@@ -1276,13 +1285,13 @@
         bgtz $v0 commit_handover
         is_occupied_add($s5, 256)
         bgtz $v0 commit_handover
-        
+        li $v0 0
         j handover_exit
     
     handover_vertical:
         is_occupied_add($s5, 256)
         bgtz $v0 commit_handover
-        
+        li $v0 0
         j handover_exit
     
     commit_handover:
@@ -1337,20 +1346,76 @@
     pop($t0)
 .end_macro
 
-.text
-    set_color_w(background_color)
-    lw $a0 screen_size
-    draw_background()
+.macro check_restart()
+    push($t0)
+    push($t1)
     
-    set_x_i(0)
-    set_y_i(0)
-    draw_asset(asset_bottle_size, asset_bottle_data)
-    draw_board(board)
-    blit()
-    generate_random_pill()
-    li $a0 8
-    spawn_n_virus($a0)
-    tick_set_zero()
+    lw $t0 keyboard_address
+    lw $t1 0($t0)
+    bne $t1 1 check_restart_exit
+    lw $t1 4($t0)   # hold value of the key that has been pressed
+    
+    beq $t1 0x72 handle_q
+    beq $t1 10 handle_enter
+    j check_restart_exit
+    
+    handle_q:
+        li $v0 10
+        syscall
+    handle_enter:
+        li $v0 1
+        j check_restart_exit
+    
+    li $v0 0
+    check_restart_exit:
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.macro clear_board()
+    push($t0)
+    push($t1)
+    move $s4 $zero
+    move $s5 $zero
+    
+    li $t0 127
+    la $t1 board
+    
+    clear_board_loop:
+        bltz $t0 clear_board_exit
+        
+        sw $zero 8($t1)
+        sw $zero 12($t1)
+        sw $zero 16($t1)
+        sw $zero 20($t1)
+        sw $zero 24($t1)
+        sw $zero 28($t1)
+        
+        addi $t1 $t1 32
+        subi $t0 $t0 1
+        j clear_board_loop
+    clear_board_exit:
+    pop($t1)
+    pop($t0)
+.end_macro
+
+.text
+    game_loop_start:
+        clear_board()
+        set_color_w(background_color)
+        lw $a0 screen_size
+        draw_background()
+        # end_game()
+        set_x_i(0)
+        set_y_i(0)
+        draw_asset(asset_bottle_size, asset_bottle_data)
+        draw_board(board)
+        blit()
+        generate_random_pill()
+        li $a0 8
+        spawn_n_virus($a0)
+        
+        tick_set_zero()
     game_loop:
         on_tick(1, check_kb_cont)
             check_kb()
@@ -1362,6 +1427,7 @@
             remove_connected_horizontal(board)
             do_gravity(board)
             handle_handover()
+            bgtz $v1 end_game_loop
             draw_board(board)
             blit()
         remove_cont:
@@ -1373,4 +1439,15 @@
         gen_pill_cont:
         
         tick_sleep()
-    j game_loop
+        j game_loop
+            
+    end_game_loop:
+        set_x_i(96)
+        set_y_i(72)
+        draw_asset(asset_game_over_size, asset_game_over_data)
+        blit()
+        
+        li $v0 0
+        check_restart()
+        bgtz $v0 game_loop_start
+        j end_game_loop
