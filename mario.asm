@@ -1,5 +1,6 @@
 .data
     trololol: .space 1000000
+    
     disp_addr: .word 0x10008000
     screen_size: .word 57344
     screen_height: .word 224
@@ -15,9 +16,11 @@
     keyboard_address: .word 0xffff0000
     render_buffer: .space 229376
     render_buffer_size: .word 229376
+    
     trolo1: .space 10000000
     .include "board.c"
     trolo2: .space 10000000
+    is_paused: .word 0
     .include "pill_red_left.c"
     .include "pill_red_right.c"
     .include "pill_red_top.c"
@@ -41,6 +44,7 @@
     .include "virus_blue.c"
     .include "virus_yellow.c"
     .include "game_over.c"
+    .include "pause_screen.c"
     tralala: .space 100000
     .include "bottle.c"
     trolo: .space 10000000
@@ -1228,14 +1232,34 @@
     bne $t1 1 check_kb_exit
     lw $t1 4($t0)   # hold value of the key that has been pressed
     
-    beq $t1 0x72 handle_q
+    beq $t1 0x72 handle_r
     beq $t1 0x77 handle_w
     beq $t1 0x64 handle_d
     beq $t1 0x61 handle_a
     beq $t1 0x73 handle_s
+    beq $t1 112 handle_p
     j check_kb_exit
     
-    handle_q:
+    handle_p:
+        flip_paused_state()
+        
+        handle_p1:
+            check_paused()
+            beq $zero $v0 check_kb_exit
+            set_x_i(96)
+            set_y_i(72)
+            draw_asset(asset_pause_screen_size, asset_pause_screen_data)
+            blit()
+            lw $t0 keyboard_address
+            lw $t1 0($t0)
+            bne $t1 1 handle_p1
+            lw $t1 4($t0)   # hold value of the key that has been pressed
+            beq $t1 112 handle_p
+            j handle_p1
+        
+        check_kb_start:
+        
+    handle_r:
         generate_random_pill()
         do_gravity(board)
         draw_board(board)
@@ -1399,6 +1423,24 @@
     pop($t0)
 .end_macro
 
+.macro check_paused()
+    push($t0)
+    la $t0 is_paused
+    lw $v0 0($t0)
+    pop($t0)
+.end_macro
+
+.macro flip_paused_state()
+    push($t0)
+    push($t1)
+    la $t0, is_paused
+    lw $t1, 0($t0)
+    xori $t1, $t1, 1     # XOR with 1 to flip between 0 and 1
+    sw $t1, 0($t0)
+    pop($t1)
+    pop($t0)
+.end_macro
+
 .text
     game_loop_start:
         clear_board()
@@ -1444,6 +1486,7 @@
     end_game_loop:
         set_x_i(96)
         set_y_i(72)
+        
         draw_asset(asset_game_over_size, asset_game_over_data)
         blit()
         
