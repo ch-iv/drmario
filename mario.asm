@@ -1542,6 +1542,23 @@
     draw_virses_exit:
 .end_macro
 
+.macro play_music()
+    
+    beq $s6 0 draw_note1
+    j play_music_exit
+    
+    draw_note1:
+        li $v0, 33          # System call for MIDI out
+        li $a0, 60          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        j play_music_exit
+        
+    play_music_exit:    
+.end_macro
+
 .text
     game_loop_start:
         clear_board()
@@ -1565,6 +1582,7 @@
         
         tick_set_zero()
     game_loop:
+        play_music()
         draw_mario()
         draw_viruses()
         on_tick(1, check_kb_cont)
