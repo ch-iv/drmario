@@ -974,7 +974,7 @@
     
     set_zero:
         li $s6 0
-    
+        addi $t9 $t9 1
     tick_sleep_exit:
     pop($t0)
 .end_macro
@@ -1663,10 +1663,7 @@
     li $a3, 100         # Volume: medium
     syscall
     
-    # Small delay
-    li $v0, 32          # System call for sleep
-    li $a0, 50          # Sleep for 50ms
-    syscall
+
     
     # Second note
     li $v0, 31
@@ -1676,10 +1673,7 @@
     li $a3, 105         # Volume: medium
     syscall
     
-    # Small delay
-    li $v0, 32
-    li $a0, 50
-    syscall
+
     
     # Third note
     li $v0, 31
@@ -1701,11 +1695,7 @@
     li $a3, 110         # Volume: medium-loud
     syscall
     
-    # Small delay
-    li $v0, 32          # System call for sleep
-    li $a0, 100         # Sleep for 100ms
-    syscall
-    
+
     # Second beep
     li $v0, 31
     li $a0, 67          # Pitch: G (67)
@@ -1713,11 +1703,7 @@
     li $a2, 115         # Instrument: Steel Drums
     li $a3, 115         # Volume: louder
     syscall
-    
-    # Small delay
-    li $v0, 32
-    li $a0, 100
-    syscall
+
     
     # Final beep
     li $v0, 31
@@ -1738,11 +1724,7 @@
     li $a2, 81          # Instrument: Lead 1 (square wave)
     li $a3, 127         # Volume: maximum
     syscall
-    
-    # Almost no delay
-    li $v0, 32
-    li $a0, 10
-    syscall
+
     
     # Main laser sound
     li $v0, 31
@@ -1771,12 +1753,7 @@
     li $a2, 10          # Instrument: Music Box
     li $a3, 120         # Volume: quite loud
     syscall
-    
-    # Very short delay
-    li $v0, 32
-    li $a0, 30
-    syscall
-    
+
     # Second ping (higher pitch)
     li $v0, 31
     li $a0, 84          # Pitch: C (84)
@@ -1786,9 +1763,31 @@
     syscall
 .end_macro
 
+.macro get_gravity_speed()
+    blt $t9 15 get_speed_1
+    blt $t9 30 get_speed_2
+    blt $t9 50 get_speed_3
+    j get_speed_max
+    
+    get_speed_1:
+        li $v0 512
+        j get_gravity_exit
+    get_speed_2:
+        li $v0 256
+        j get_gravity_exit
+    get_speed_3:
+        li $v0 128
+        j get_gravity_exit
+    get_speed_max:
+        li $v0 2
+        j get_gravity_exit
+    get_gravity_exit:
+.end_macro
+
 .text
     game_loop_start:
-        li $t9 512
+        li $t9 0    # global cycle counter
+        
         clear_board()
         set_color_w(background_color)
         lw $a0 screen_size
@@ -1817,8 +1816,8 @@
             check_kb()
         check_kb_cont:
         
-       
-        on_tick_reg($t9, remove_cont)
+        get_gravity_speed()
+        on_tick_reg($v0, remove_cont)
             handle_handover()
             remove_connected(board)
             remove_connected_horizontal(board)
@@ -1831,11 +1830,11 @@
             blit()
         remove_cont:
         
-        on_tick(1024, gen_pill_cont)
-            subi $t9 $t9 64 # increase speed of gravity (bigger = faster)
-            bgtz $t9 gen_pill_cont
-            li $t9 1
-        gen_pill_cont:
+        # on_tick(1024, gen_pill_cont)
+            # subi $t9 $t9 2 # increase speed of gravity (bigger = faster)
+            # bgtz $t9 gen_pill_cont
+            # li $t9 1
+        # gen_pill_cont:
         
         tick_sleep()
         j game_loop
