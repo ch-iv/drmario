@@ -552,7 +552,7 @@
                     bgtz $t6 anding_color
                 
                 beq $t5 $zero remove_conntected_continue
-                
+                COUNTDOWN_BEEP()
                 li $t6 4
                 removing_cells:
                     move $a0 $t2    # a0 stores the adress of the cell to remove
@@ -617,7 +617,7 @@
                     bgtz $t6 anding_color
                 
                 beq $t5 $zero remove_conntected_continue
-                
+                COUNTDOWN_BEEP()
                 li $t6 4
                 removing_cells:
                     move $a0 $t2    # a0 stores the adress of the cell to remove
@@ -988,6 +988,14 @@
     pop($t0)
 .end_macro
 
+.macro on_tick_reg(%tick, %label)
+    push($t0)
+    div $s6 %tick
+    mfhi $t0
+    bne $t0 $zero %label
+    pop($t0)
+.end_macro
+
 .macro is_vertical()
     sub $v0 $s5 $s4
     srl $v0 $v0 8
@@ -1056,7 +1064,7 @@
     lw $t0 4($s4)
     li $t1 72
     beq $t0 $t1 rotate_exit
-    
+    ALERT_BEEP()
     is_vertical()
     beq $v0 $zero rotate_horizontal
     bne $v0 $zero rotate_vertical
@@ -1193,7 +1201,7 @@
         bgtz $v0 move_down_exit
         
     continue_move_down:
-    
+    SUCCESS_JINGLE()
     move $t0 $s4
     move $t1 $s5
     
@@ -1545,11 +1553,67 @@
 .macro play_music()
     
     beq $s6 0 draw_note1
+    beq $s6 256 draw_note2
+    beq $s6 800 draw_note3
     j play_music_exit
     
     draw_note1:
-        li $v0, 33          # System call for MIDI out
-        li $a0, 60          # Pitch: middle C (60)
+        li $v0, 31          # System call for MIDI out
+        li $a0, 62          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 66          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 69          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        j play_music_exit
+    
+    draw_note2:
+        li $v0, 31          # System call for MIDI out
+        li $a0, 64          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 61          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 69          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        j play_music_exit
+    
+    draw_note3:
+        li $v0, 31          # System call for MIDI out
+        li $a0, 62          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 66          # Pitch: middle C (60)
+        li $a1, 1000        # Duration: 1 second (1000 ms)
+        li $a2, 0           # Instrument: piano (0)
+        li $a3, 100         # Volume: medium-loud (100)
+        syscall
+        li $v0, 31          # System call for MIDI out
+        li $a0, 71          # Pitch: middle C (60)
         li $a1, 1000        # Duration: 1 second (1000 ms)
         li $a2, 0           # Instrument: piano (0)
         li $a3, 100         # Volume: medium-loud (100)
@@ -1558,9 +1622,173 @@
         
     play_music_exit:    
 .end_macro
+# Sound Effect 1: Alert Beep
+# A short, high-pitched beep that can be used as an alert or notification
+.macro ALERT_BEEP()
+    li $v0, 31          # System call for MIDI out
+    li $a0, 84          # Pitch: high C (84)
+    li $a1, 300         # Duration: 0.3 seconds
+    li $a2, 113         # Instrument: Tinkle Bell
+    li $a3, 127         # Volume: maximum loudness
+    syscall
+.end_macro
+
+# Sound Effect 2: Error Buzz
+# A lower, dissonant sound that can indicate an error
+.macro ERROR_BUZZ()
+    li $v0, 31          # System call for MIDI out
+    li $a0, 48          # Pitch: low C (48)
+    li $a1, 500         # Duration: 0.5 seconds
+    li $a2, 20          # Instrument: Reed Organ
+    li $a3, 120         # Volume: quite loud
+    syscall
+    
+    # Second part of the buzz - slightly different pitch
+    li $v0, 31
+    li $a0, 49          # Pitch: C# (49)
+    li $a1, 400         # Duration: 0.4 seconds
+    li $a2, 20          # Instrument: Reed Organ
+    li $a3, 110         # Volume: moderately loud
+    syscall
+.end_macro
+
+# Sound Effect 3: Success Jingle
+# A pleasant ascending sequence to indicate success
+.macro SUCCESS_JINGLE()
+    # First note
+    li $v0, 31          # System call for MIDI out
+    li $a0, 60          # Pitch: middle C (60)
+    li $a1, 200         # Duration: 0.2 seconds
+    li $a2, 9           # Instrument: Glockenspiel
+    li $a3, 100         # Volume: medium
+    syscall
+    
+    # Small delay
+    li $v0, 32          # System call for sleep
+    li $a0, 50          # Sleep for 50ms
+    syscall
+    
+    # Second note
+    li $v0, 31
+    li $a0, 64          # Pitch: E (64)
+    li $a1, 200         # Duration: 0.2 seconds
+    li $a2, 9           # Instrument: Glockenspiel
+    li $a3, 105         # Volume: medium
+    syscall
+    
+    # Small delay
+    li $v0, 32
+    li $a0, 50
+    syscall
+    
+    # Third note
+    li $v0, 31
+    li $a0, 67          # Pitch: G (67)
+    li $a1, 400         # Duration: 0.4 seconds
+    li $a2, 9           # Instrument: Glockenspiel
+    li $a3, 110         # Volume: medium-loud
+    syscall
+.end_macro
+
+# Sound Effect 4: Countdown Beep
+# A descending sequence that can be used for countdown or timer effects
+.macro COUNTDOWN_BEEP()
+    # First beep
+    li $v0, 31          # System call for MIDI out
+    li $a0, 72          # Pitch: C (72)
+    li $a1, 250         # Duration: 0.25 seconds
+    li $a2, 115         # Instrument: Steel Drums
+    li $a3, 110         # Volume: medium-loud
+    syscall
+    
+    # Small delay
+    li $v0, 32          # System call for sleep
+    li $a0, 100         # Sleep for 100ms
+    syscall
+    
+    # Second beep
+    li $v0, 31
+    li $a0, 67          # Pitch: G (67)
+    li $a1, 250         # Duration: 0.25 seconds
+    li $a2, 115         # Instrument: Steel Drums
+    li $a3, 115         # Volume: louder
+    syscall
+    
+    # Small delay
+    li $v0, 32
+    li $a0, 100
+    syscall
+    
+    # Final beep
+    li $v0, 31
+    li $a0, 60          # Pitch: Middle C (60)
+    li $a1, 400         # Duration: 0.4 seconds
+    li $a2, 115         # Instrument: Steel Drums
+    li $a3, 127         # Volume: maximum
+    syscall
+.end_macro
+
+# Sound Effect 5: Laser Blast
+# A sci-fi style laser sound effect
+.macro LASER_BLAST()
+    # Quick rising pitch
+    li $v0, 31          # System call for MIDI out
+    li $a0, 90          # Pitch: High F# (90)
+    li $a1, 50          # Duration: Very short (50ms)
+    li $a2, 81          # Instrument: Lead 1 (square wave)
+    li $a3, 127         # Volume: maximum
+    syscall
+    
+    # Almost no delay
+    li $v0, 32
+    li $a0, 10
+    syscall
+    
+    # Main laser sound
+    li $v0, 31
+    li $a0, 103         # Pitch: Very high G (103)
+    li $a1, 200         # Duration: 0.2 seconds
+    li $a2, 81          # Instrument: Lead 1 (square wave)
+    li $a3, 120         # Volume: quite loud
+    syscall
+    
+    # Falling pitch to simulate dissipation
+    li $v0, 31
+    li $a0, 84          # Pitch: High C (84)
+    li $a1, 100         # Duration: 0.1 seconds
+    li $a2, 81          # Instrument: Lead 1 (square wave)
+    li $a3, 100         # Volume: medium
+    syscall
+.end_macro
+
+# Sound Effect 6: Coin Collect
+# A cheerful sound like collecting a coin in a video game
+.macro COIN_COLLECT()
+    # First ping
+    li $v0, 31          # System call for MIDI out
+    li $a0, 76          # Pitch: E (76)
+    li $a1, 100         # Duration: 0.1 seconds
+    li $a2, 10          # Instrument: Music Box
+    li $a3, 120         # Volume: quite loud
+    syscall
+    
+    # Very short delay
+    li $v0, 32
+    li $a0, 30
+    syscall
+    
+    # Second ping (higher pitch)
+    li $v0, 31
+    li $a0, 84          # Pitch: C (84)
+    li $a1, 150         # Duration: 0.15 seconds
+    li $a2, 10          # Instrument: Music Box
+    li $a3, 127         # Volume: maximum
+    syscall
+.end_macro
 
 .text
     game_loop_start:
+        li $t9 512
         clear_board()
         set_color_w(background_color)
         lw $a0 screen_size
@@ -1589,26 +1817,31 @@
             check_kb()
         check_kb_cont:
         
-        on_tick(256, remove_cont)
+       
+        on_tick_reg($t9, remove_cont)
             handle_handover()
             remove_connected(board)
             remove_connected_horizontal(board)
             do_gravity(board)
             handle_handover()
-            bgtz $v1 end_game_loop
+            
+            
+            bgtz $v1 pre_end_game_loop
             draw_board(board)
             blit()
         remove_cont:
         
         on_tick(1024, gen_pill_cont)
-            # generate_random_pill()
-            # draw_board(board)
-            # blit()
+            subi $t9 $t9 64 # increase speed of gravity (bigger = faster)
+            bgtz $t9 gen_pill_cont
+            li $t9 1
         gen_pill_cont:
         
         tick_sleep()
         j game_loop
-            
+    
+    pre_end_game_loop:
+        ERROR_BUZZ()
     end_game_loop:
         set_x_i(96)
         set_y_i(72)
