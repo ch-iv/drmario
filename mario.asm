@@ -50,6 +50,18 @@
     .include "mario3.c"
     .include "mario4.c"
     .include "mario_bg.c"
+    .include "vvirus_red1.c"
+    .include "vvirus_blue1.c"
+    .include "vvirus_yellow1.c"
+    .include "vvirus_red2.c"
+    .include "vvirus_blue2.c"
+    .include "vvirus_yellow2.c"
+    .include "vvirus_red3.c"
+    .include "vvirus_blue3.c"
+    .include "vvirus_yellow3.c"
+    .include "vvirus_red4.c"
+    .include "vvirus_blue4.c"
+    .include "vvirus_yellow4.c"
     tralala: .space 100000
     .include "bottle.c"
     trolo: .space 10000000
@@ -1473,6 +1485,63 @@
     draw_mario_exit:
 .end_macro
 
+.macro draw_viruses()
+    beq $s6 0 draw_viruses_1
+    beq $s6 256 draw_viruses_2
+    beq $s6 512 draw_viruses_3
+    beq $s6 768 draw_viruses_4
+    j draw_virses_exit
+    draw_viruses_1:
+        set_x_i(30)
+        set_y_i(130)
+        draw_asset(asset_vvirus_red1_size, asset_vvirus_red1_data)
+        set_x_i(20)
+        set_y_i(160)
+        draw_asset(asset_vvirus_blue1_size, asset_vvirus_blue1_data)
+        set_x_i(45)
+        set_y_i(155)
+        draw_asset(asset_vvirus_yellow1_size, asset_vvirus_yellow1_data)
+        blit()
+        j draw_virses_exit
+    draw_viruses_2:
+        set_x_i(30)
+        set_y_i(130)
+        draw_asset(asset_vvirus_red2_size, asset_vvirus_red2_data)
+        set_x_i(20)
+        set_y_i(160)
+        draw_asset(asset_vvirus_blue2_size, asset_vvirus_blue2_data)
+        set_x_i(45)
+        set_y_i(155)
+        draw_asset(asset_vvirus_yellow2_size, asset_vvirus_yellow2_data)
+        blit()
+        j draw_virses_exit
+    draw_viruses_3:
+        set_x_i(30)
+        set_y_i(130)
+        draw_asset(asset_vvirus_red3_size, asset_vvirus_red3_data)
+        set_x_i(20)
+        set_y_i(160)
+        draw_asset(asset_vvirus_blue3_size, asset_vvirus_blue3_data)
+        set_x_i(45)
+        set_y_i(155)
+        draw_asset(asset_vvirus_yellow3_size, asset_vvirus_yellow3_data)
+        blit()
+        j draw_virses_exit
+    draw_viruses_4:
+        set_x_i(30)
+        set_y_i(130)
+        draw_asset(asset_vvirus_red4_size, asset_vvirus_red4_data)
+        set_x_i(20)
+        set_y_i(160)
+        draw_asset(asset_vvirus_blue4_size, asset_vvirus_blue4_data)
+        set_x_i(45)
+        set_y_i(155)
+        draw_asset(asset_vvirus_yellow4_size, asset_vvirus_yellow4_data)
+        blit()
+        j draw_virses_exit
+    draw_virses_exit:
+.end_macro
+
 .text
     game_loop_start:
         clear_board()
@@ -1497,6 +1566,7 @@
         tick_set_zero()
     game_loop:
         draw_mario()
+        draw_viruses()
         on_tick(1, check_kb_cont)
             check_kb()
         check_kb_cont:
