@@ -115,7 +115,9 @@ def main():
                         color = map_color(color, asset_name)
     
     
-                        words += f"{rgb_to_hex((0, 0, x))}, {rgb_to_hex((0, 0, y))}, {rgb_to_hex(color)}, "
+                        #words += f"{hex(((256-width)*y + x*y + x)*4)}, {rgb_to_hex((0, 0, 0))}, {rgb_to_hex(color)}, "
+                        words += f"{hex(((256 - width)*y + width*y + x)*4)}, {rgb_to_hex((0, 0, 0))}, {rgb_to_hex(color)}, "
+                        print(x, y, y*width+x)
                         n += 1
     
             words.removesuffix(", ")

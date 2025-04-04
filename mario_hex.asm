@@ -22,7 +22,6 @@
     trolo2: .space 10000000
     is_paused: .word 0
     viruses_to_spawn: .word 1 
-    start_time: .word 0
     .include "pill_red_left.c"
     .include "pill_red_right.c"
     .include "pill_red_top.c"
@@ -120,50 +119,63 @@
     lw $s7 %a1
 .end_macro
 
+.macro set_x(%a1)
+    # Sets the value of x from a register.
+    # x position is stored in $s0
+    move $s0 %a1
+.end_macro
 
 .macro set_x_i(%a1)
     # Sets the value of x from a passed int.
     # x position is stored in $s0
     li $s0 %a1
-    sll $s0 $s0 2
+.end_macro
+
+.macro set_x_w(%a1)
+    # Sets the value of x from a word.
+    # x position is stored in $s0
+    lw $s0 %a1
+.end_macro
+
+.macro set_y(%a1)
+    # Sets the value of y from a register.
+    # y position is stored in $s1
+    move $s1 %a1
 .end_macro
 
 .macro set_y_i(%a1)
     # Sets the value of y from a passed int.
     # y position is stored in $s1
     li $s1 %a1
-    sll $s1 $s1 10
-    add $s0 $s1 $s0
+.end_macro
+
+.macro set_y_w(%a1)
+    # Sets the value of y from a word.
+    # y position is stored in $s1
+    lw $s1 %a1
 .end_macro
 
 .macro draw()
     # draws a pixel offset by x offset and y offset from the register x y position.
     # Calculate x position with offset: $s0 + $t0
-    la $t8, render_buffer
-    add $t8 $s2 $t8
-    add $t8 $t8 $s0
-    sw $s7, 0($t8)
-.end_macro
-
-.macro draw2()
-    # draws a pixel offset by x offset and y offset from the register x y position.
-    # Calculate x position with offset: $s0 + $t0
-    push($t0)
+    push_zero($t0)
     push($t1)
     push($t2)
     push($t3)
     
-    lw $t1, screen_width
-    add $t0, $s1, $s3     # t0 = y + y_offset
-    mul $t0, $t0, $t1     # t0 = screen_width * (y + y_offset)
-    add $t0, $t0, $s0     # t0 = screen_width * (y + y_offset) + x
-    add $t0, $t0, $s2     # t0 = screen_width * (y + y_offset) + x + x_offset
+    lw $t1 screen_width
+    move $t0 $s1        # t0 = y
+    add $t0 $t0 $s3     # t0 = y + y_offset
+    mul $t0 $t0 $t1     # t0 = screen_width * (y + y_offset)
+    add $t0 $t0 $s0     # t0 = screen_width * (y + y_offset) + x
+    add $t0 $t0 $s2     # t0 = screen_width * (y + y_offset) + x + x_offset
     
-    # Convert to byte offset (multiply by 4)
-    sll $t0, $t0, 2       # Shift left by 2 is much faster than multiply by 4
+      
+    li $t3 4
+    mul $t0 $t0 $t3
     
-    la $t2, render_buffer
-    add $t2, $t2, $t0
+    la $t2 render_buffer
+    add $t2 $t2 $t0
     
     sw $s7, 0($t2)
     
@@ -228,6 +240,7 @@
     pop($s2)
 .end_macro
 
+
 .macro draw_asset(%asset_size, %asset_data)
     push($t0)
     push($t1)
@@ -240,28 +253,6 @@
         lw $s3 4($t1)   # y offset
         lw $s7 8($t1)   # color
         draw()
-        
-        addi $t1 $t1 12
-        subi $t0 $t0 1
-        bgtz $t0, draw_asset_loop
-    
-    pop($t1)
-    pop($t0)
-.end_macro
-
-
-.macro draw_asset2(%asset_size, %asset_data)
-    push($t0)
-    push($t1)
-    
-    lw $t0 %asset_size
-    la $t1 %asset_data
-    
-    draw_asset_loop:
-        lw $s2 0($t1)   # x offset
-        lw $s3 4($t1)   # y offset
-        lw $s7 8($t1)   # color
-        draw2()
         
         addi $t1 $t1 12
         subi $t0 $t0 1
@@ -298,20 +289,20 @@
                 lw $t5 8($t2)   # sprite color (not a hex code)
                 lw $t6 12($t2)  # sprite type
                 
-                andi $t7 $t6 0b01000000     # is it a pill?
+                andi $t7 $t6 0x40     # is it a pill?
                 bgtz $t7 it_is_a_pill
                 
-                addi $t7 $t6 0b10000000
+                addi $t7 $t6 0x80
                 bgtz $t7 it_is_a_virus
                 
                 j not_a_pill
                 
                 it_is_a_virus:
-                    andi $t7 $t5 0b00000001     # is it red?
+                    andi $t7 $t5 0x1     # is it red?
                     bgtz $t7 draw_red_virus
-                    andi $t7 $t5 0b00000010     # is it blue?
+                    andi $t7 $t5 0x2     # is it blue?
                     bgtz $t7 draw_blue_virus
-                    andi $t7 $t5 0b00000100     # is it yellow?
+                    andi $t7 $t5 0x4     # is it yellow?
                     bgtz $t7 draw_yellow_virus
                     j not_a_pill    # neither red, blue, nor yellow
                     
@@ -352,26 +343,26 @@
                         j not_a_pill
                     
                 it_is_a_pill:
-                    andi $t7 $t5 0b00000001     # is it red?
+                    andi $t7 $t5 0x1     # is it red?
                     bgtz $t7 draw_red_pill
-                    andi $t7 $t5 0b00000010     # is it blue?
+                    andi $t7 $t5 0x2     # is it blue?
                     bgtz $t7 draw_blue_pill
-                    andi $t7 $t5 0b00000100     # is it yellow?
+                    andi $t7 $t5 0x4     # is it yellow?
                     bgtz $t7 draw_yellow_pill
                     j not_a_pill    # neither red, blue, nor yellow
                     
                     draw_red_pill:
-                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        andi $t8 $t6 0x20     # is it a left sided pill?
                         bgtz $t8 draw_red_left_pill
-                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        andi $t8 $t6 0x10     # is it a right sided pill?
                         bgtz $t8 draw_red_right_pill
-                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        andi $t8 $t6 0x8     # is it a top sided pill?
                         bgtz $t8 draw_red_top_pill
-                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        andi $t8 $t6 0x4     # is it a bottom sided pill?
                         bgtz $t8 draw_red_bottom_pill
-                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        andi $t8 $t6 0x2     # is it a single sided pill?
                         bgtz $t8 draw_red_single_pill
-                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        andi $t8 $t6 0x1     # is it an empty pill?
                         bgtz $t8 draw_red_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
@@ -396,17 +387,17 @@
                         j not_a_pill    # done rendering the pill
                     
                     draw_blue_pill:
-                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        andi $t8 $t6 0x20     # is it a left sided pill?
                         bgtz $t8 draw_blue_left_pill
-                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        andi $t8 $t6 0x10     # is it a right sided pill?
                         bgtz $t8 draw_blue_right_pill
-                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        andi $t8 $t6 0x8     # is it a top sided pill?
                         bgtz $t8 draw_blue_top_pill
-                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        andi $t8 $t6 0x4     # is it a bottom sided pill?
                         bgtz $t8 draw_blue_bottom_pill
-                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        andi $t8 $t6 0x2     # is it a single sided pill?
                         bgtz $t8 draw_blue_single_pill
-                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        andi $t8 $t6 0x1     # is it an empty pill?
                         bgtz $t8 draw_blue_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
@@ -431,17 +422,17 @@
                     j not_a_pill    # done rendering the pill
                     
                     draw_yellow_pill:
-                        andi $t8 $t6 0b00100000     # is it a left sided pill?
+                        andi $t8 $t6 0x20     # is it a left sided pill?
                         bgtz $t8 draw_yellow_left_pill
-                        andi $t8 $t6 0b00010000     # is it a right sided pill?
+                        andi $t8 $t6 0x10     # is it a right sided pill?
                         bgtz $t8 draw_yellow_right_pill
-                        andi $t8 $t6 0b00001000     # is it a top sided pill?
+                        andi $t8 $t6 0x8     # is it a top sided pill?
                         bgtz $t8 draw_yellow_top_pill
-                        andi $t8 $t6 0b00000100     # is it a bottom sided pill?
+                        andi $t8 $t6 0x4     # is it a bottom sided pill?
                         bgtz $t8 draw_yellow_bottom_pill
-                        andi $t8 $t6 0b00000010     # is it a single sided pill?
+                        andi $t8 $t6 0x2     # is it a single sided pill?
                         bgtz $t8 draw_yellow_single_pill
-                        andi $t8 $t6 0b00000001     # is it an empty pill?
+                        andi $t8 $t6 0x1     # is it an empty pill?
                         bgtz $t8 draw_yellow_empty_pill
                         j not_a_pill    # neither left, right, top, bottom nor single
                         
@@ -489,50 +480,50 @@
     push($t2)
     
     lw $t0 12(%cell_addr)  # sprite type
-    andi $t0 $t0 0b00111100 # greater than 0 if this a left, right, top, or bottom pill
+    andi $t0 $t0 0x3C # greater than 0 if this a left, right, top, or bottom pill
                             # we do not care for other cases, because we can just zero out the memory
     beq $t0 $zero zero_memory 
     
     # Handle each direction of pill
-    andi $t1 $t0 0b00100000     # is it a left sided pill?
+    andi $t1 $t0 0x20     # is it a left sided pill?
     bgtz $t1 remove_left_pill
-    andi $t1 $t0 0b00010000     # is it a right sided pill?
+    andi $t1 $t0 0x10     # is it a right sided pill?
     bgtz $t1 remove_right_pill
-    andi $t1 $t0 0b00001000     # is it a top sided pill?
+    andi $t1 $t0 0x8     # is it a top sided pill?
     bgtz $t1 remove_top_pill
-    andi $t1 $t0 0b00000100     # is it a bottom sided pill?
+    andi $t1 $t0 0x4     # is it a bottom sided pill?
     bgtz $t1 remove_bottom_pill
     j zero_memory
     
     remove_left_pill:
         addi %cell_addr %cell_addr 32   # cell_addr is pointing to the cell to the right of our original cell
         lw $t2 12(%cell_addr)   # holding the sprite type
-        andi $t2 $t2 0b11000011 # remove previous pill type
-        ori $t2 $t2 0b00000010  # set to a single pill
+        andi $t2 $t2 0xC3 # remove previous pill type
+        ori $t2 $t2 0x2  # set to a single pill
         sw $t2 12(%cell_addr)
         subi %cell_addr %cell_addr 32
         j zero_memory
     remove_right_pill:
         subi %cell_addr %cell_addr 32   # cell_addr is pointing to the cell to the right of our original cell
         lw $t2 12(%cell_addr)   # holding the sprite type
-        andi $t2 $t2 0b11000011 # remove previous pill type
-        ori $t2 $t2 0b00000010  # set to a single pill
+        andi $t2 $t2 0xC3 # remove previous pill type
+        ori $t2 $t2 0x2  # set to a single pill
         sw $t2 12(%cell_addr)
         addi %cell_addr %cell_addr 32
         j zero_memory
     remove_top_pill:
         addi %cell_addr %cell_addr 256   # cell_addr is pointing to the cell to the right of our original cell
         lw $t2 12(%cell_addr)   # holding the sprite type
-        andi $t2 $t2 0b11000011 # remove previous pill type
-        ori $t2 $t2 0b00000010  # set to a single pill
+        andi $t2 $t2 0xC3 # remove previous pill type
+        ori $t2 $t2 0x2  # set to a single pill
         sw $t2 12(%cell_addr)
         subi %cell_addr %cell_addr 256
         j zero_memory
     remove_bottom_pill:
         subi %cell_addr %cell_addr 256   # cell_addr is pointing to the cell to the right of our original cell
         lw $t2 12(%cell_addr)   # holding the sprite type
-        andi $t2 $t2 0b11000011 # remove previous pill type
-        ori $t2 $t2 0b00000010  # set to a single pill
+        andi $t2 $t2 0xC3 # remove previous pill type
+        ori $t2 $t2 0x2  # set to a single pill
         sw $t2 12(%cell_addr)
         addi %cell_addr %cell_addr 256
         j zero_memory
@@ -690,13 +681,13 @@
     # We do not drop right pills
     lw $t0 12(%cell_addr)
     
-    andi $t1 $t0 0b00100000     # is it a left sided pill?
+    andi $t1 $t0 0x20     # is it a left sided pill?
     bgtz $t1 drop_left_pill
-    andi $t1 $t0 0b00001000     # is it a top sided pill?
+    andi $t1 $t0 0x8     # is it a top sided pill?
     bgtz $t1 drop_bottom_or_top
-    andi $t1 $t0 0b00000100     # is it a bottom sided pill?
+    andi $t1 $t0 0x4     # is it a bottom sided pill?
     bgtz $t1 drop_bottom_or_top
-    andi $t1 $t0 0b00000010     # is it a single sided pill?
+    andi $t1 $t0 0x2     # is it a single sided pill?
     bgtz $t1 drop_bottom_or_top
     j exit_try_drop_cell
     
@@ -898,37 +889,22 @@
     push($t0)
     push($t1)
     push($t2)
-    push($t3)
-    push($t4)
     
     lw $t0 render_buffer_size      # Load the size of the render buffer (in bytes)
     la $t1 render_buffer           # Load the address of the render buffer
     lw $t2 disp_addr               # Load the address of the display buffer
-    srl $t0 $t0 2                  # Divide size by 4 to get number of words to copy
-
-    # Calculate the end address for the unrolled loop
-    srl $t4, $t0, 2                # Divide by 4 (unroll factor)
-    sll $t4, $t4, 2                # Multiply by 4 to get number of words handled by unrolled loop
-    sub $t0, $t0, $t4              # Remaining words after unrolled loop
-    sll $t4, $t4, 2                # Convert word count to byte offset
-    add $t4, $t1, $t4              # End address for unrolled loop
+    srl $t0 $t0 2                # Divide size by 4 to get number of words to copy
+  
+    blit_loop:
+        beqz $t0 blit_done          # If size is zero, we're done
+        lw $t3 0($t1)               # Load word from render buffer
+        sw $t3 0($t2)               # Store word to display buffer
+        addiu $t1 $t1 4            # Advance render buffer pointer
+        addiu $t2 $t2 4            # Advance display buffer pointer
+        subu $t0 $t0 1             # Decrement word count
+        j blit_loop                  # Repeat loop
+    blit_done:
     
-    # Unrolled loop - copy 4 words per iteration
-blit_unrolled:
-    lw $t3, 0($t1)                 # Load word 1 from render buffer
-    sw $t3, 0($t2)                 # Store word 1 to display buffer
-    lw $t3, 4($t1)                 # Load word 2 from render buffer
-    sw $t3, 4($t2)                 # Store word 2 to display buffer
-    lw $t3, 8($t1)                 # Load word 3 from render buffer
-    sw $t3, 8($t2)                 # Store word 3 to display buffer
-    lw $t3, 12($t1)                # Load word 4 from render buffer
-    sw $t3, 12($t2)                # Store word 4 to display buffer
-    addiu $t1, $t1, 16             # Advance render buffer pointer (4 words)
-    addiu $t2, $t2, 16             # Advance display buffer pointer (4 words)
-    bne $t1, $t4, blit_unrolled    # Continue until reaching end address
-    
-    pop($t4)
-    pop($t3)
     pop($t2)
     pop($t1)
     pop($t0)
@@ -959,13 +935,13 @@ blit_unrolled:
     beq $v0 $t0 rand_color_yellow
     
     rand_color_red:
-        li $v0 0b00000001 
+        li $v0 0x1 
         j rand_color_exit
     rand_color_blue:
-        li $v0 0b00000010
+        li $v0 0x2
         j rand_color_exit
     rand_color_yellow:
-        li $v0 0b00000100 
+        li $v0 0x4 
         j rand_color_exit
     rand_color_exit:
     pop($t0)
@@ -991,12 +967,12 @@ blit_unrolled:
     
     rand_pill_color()
     sw $v0 8($t0)
-    li $t2 0b01100000   # left pill
+    li $t2 0x60   # left pill
     sw $t2 12($t0)
     
     rand_pill_color()
     sw $v0 8($t1)
-    li $t2 0b01010000   # right pill
+    li $t2 0x50   # right pill
     sw $t2 12($t1)
     pop($t2)
     pop($t1)
@@ -1055,28 +1031,28 @@ blit_unrolled:
 
 .macro set_pill_left(%pill_addr)
     push($t0)
-    li $t0 0b01100000
+    li $t0 0x60
     sw $t0 12(%pill_addr)
     pop($t0)
 .end_macro
 
 .macro set_pill_right(%pill_addr)
     push($t0)
-    li $t0 0b01010000
+    li $t0 0x50
     sw $t0 12(%pill_addr)
     pop($t0)
 .end_macro
 
 .macro set_pill_top(%pill_addr)
     push($t0)
-    li $t0 0b01001000
+    li $t0 0x48
     sw $t0 12(%pill_addr)
     pop($t0)
 .end_macro
 
 .macro set_pill_bottom(%pill_addr)
     push($t0)
-    li $t0 0b01000100
+    li $t0 0x44
     sw $t0 12(%pill_addr)
     pop($t0)
 .end_macro
@@ -1414,7 +1390,7 @@ blit_unrolled:
     rand_pill_color()
     sw $v0 8($t0)
     
-    li $v0 0b10000000
+    li $v0 0x80
     sw $v0 12($t0)
     li $v0 1
     j spawn_virus_exit
@@ -1884,39 +1860,7 @@ blit_unrolled:
   pop($t0)
 .end_macro
 
-.macro set_start_time()
-    push($t0)
-    li $v0 30
-    syscall
-    la $t0 start_time
-    sw $a0 0($t0)
-    pop($t0)
-.end_macro
-
-.macro print_elapsed_time()
-    push($t0)
-    push($t1)
-    li $v0 30
-    syscall
-    la $t0 start_time
-    lw $t1 0($t0)
-    sub $a0 $a0 $t1 
-    li $v0 1
-    syscall
-    li $v0 11
-    la $a0 '\n'
-    syscall
-    pop($t1)
-    pop($t0)
-.end_macro
-
 .text
-    set_start_time()
-        draw_asset(asset_mario_bg_size, asset_mario_bg_data)
-        blit()
-    print_elapsed_time()
-    li $t9 0
-
     game_loop_start:
         li $t9 0    # global cycle counter
         
@@ -1942,15 +1886,11 @@ blit_unrolled:
         spawn_n_virus($a0)
         tick_set_zero()
     game_loop:
-        set_start_time()
         get_n_virses()
         beq $v0 $zero game_loop_start
-        # play_music()
-        on_tick(256, animation_cont)
-            draw_mario()
-            draw_viruses()
-        animation_cont:
-        
+        play_music()
+        draw_mario()
+        draw_viruses()
         on_tick(1, check_kb_cont)
             check_kb()
         check_kb_cont:
@@ -1962,11 +1902,13 @@ blit_unrolled:
             remove_connected_horizontal(board)
             do_gravity(board)
             handle_handover()
+            
+            
             bgtz $v1 pre_end_game_loop
             draw_board(board)
             blit()
         remove_cont:
-        
+                
         tick_sleep()
         j game_loop
     
