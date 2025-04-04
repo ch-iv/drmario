@@ -214,16 +214,29 @@
 .macro draw_square(%size_register)
     push_zero($s2) # $s2 will store the x offset
     push_zero($s3) # $s3 will store the y offset
-    
-    draw_square_loop_y:
-        li $s2 0
-        draw_square_loop_x:
-            draw()
-            addi $s2 $s2 1
-            blt $s2 %size_register draw_square_loop_x
-        addi $s3 $s3 1
-        blt $s3 %size_register draw_square_loop_y
-    
+    push($t0)
+    li $t0 7
+    draw_square_loop:
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        draw()
+        addi $s2 $s2 4
+        addi $s2 $s2 992
+        subi $t0 $t0 1
+        bgez $t0 draw_square_loop
+    pop($t0)
     pop($s3)
     pop($s2)
 .end_macro
@@ -282,9 +295,9 @@
     push($t7)
     push($t8)
     
-    set_x_i(0)
-    set_y_i(0)
-    draw_asset(asset_bottle_size, asset_bottle_data)
+    # set_x_i(0)
+    # set_y_i(0)
+    # draw_asset(asset_bottle_size, asset_bottle_data)
     
     lw $t0 board_width    # x iteration variable
     lw $t1 board_height   # y iteration variable
@@ -294,17 +307,22 @@
         lw $t0 board_width
         draw_board_loop_x:
                 lw $s0 0($t2)   # x offset
+                sll $s0 $s0 2
+                
                 lw $s1 4($t2)   # y offset
+                sll $s1 $s1 10
+                add $s0 $s0 $s1
+                
                 lw $t5 8($t2)   # sprite color (not a hex code)
                 lw $t6 12($t2)  # sprite type
                 
                 andi $t7 $t6 0b01000000     # is it a pill?
                 bgtz $t7 it_is_a_pill
                 
-                addi $t7 $t6 0b10000000
+                andi $t7 $t6 0b10000000
                 bgtz $t7 it_is_a_virus
                 
-                j not_a_pill
+                j draw_empty_cell
                 
                 it_is_a_virus:
                     andi $t7 $t5 0b00000001     # is it red?
@@ -464,7 +482,11 @@
                             draw_asset(asset_pill_yellow_empty_size, asset_pill_yellow_empty_data)
                             j not_a_pill    # done rendering the pill   
                     j not_a_pill    # done rendering the pill
-                    
+                
+                draw_empty_cell:
+                    li $s7 0
+                    li $a0 2048
+                    draw_square($a0)
                 not_a_pill:
                     addi $t2 $t2 32
                     subi $t0 $t0 1
@@ -1913,7 +1935,7 @@ blit_unrolled:
 .text
     set_start_time()
         draw_asset(asset_mario_bg_size, asset_mario_bg_data)
-        blit()
+        # blit()
     print_elapsed_time()
     li $t9 0
 
