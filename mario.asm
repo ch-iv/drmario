@@ -139,7 +139,7 @@
 .macro draw()
     # draws a pixel offset by x offset and y offset from the register x y position.
     # Calculate x position with offset: $s0 + $t0
-    li $t8, 0x10008000
+    la $t8, render_buffer
     add $t8 $s2 $t8
     add $t8 $t8 $s0
     sw $s7, 0($t8)
@@ -250,6 +250,7 @@
     
     draw_asset_loop:
         lw $s2 0($t1)   # x offset
+        lw $s3 4($t1)   # y offset
         lw $s7 8($t1)   # color
         draw()
         
@@ -1187,7 +1188,7 @@ blit_unrolled:
     
     rotate_exit:
     draw_board(board)
-    # blit()
+    blit()
     pop($t1)
     pop($t0)
     pop($v0)
@@ -1325,7 +1326,7 @@ blit_unrolled:
     push($t0)
     push($t1)
     
-    li $t0 0xffff0000 # keyboard address
+    lw $t0 keyboard_address
     lw $t1 0($t0)
     bne $t1 1 check_kb_exit
     lw $t1 4($t0)   # hold value of the key that has been pressed
@@ -1347,7 +1348,7 @@ blit_unrolled:
             set_x_i(96)
             set_y_i(72)
             draw_asset(asset_pause_screen_size, asset_pause_screen_data)
-            # blit()
+            blit()
             lw $t0 keyboard_address
             lw $t1 0($t0)
             bne $t1 1 handle_p1
@@ -1361,13 +1362,13 @@ blit_unrolled:
         generate_random_pill()
         do_gravity(board)
         draw_board(board)
-        # blit()
+        blit()
         j check_kb_exit
     
     handle_d:
         move_right()
         draw_board(board)
-        # blit()
+        blit()
         j check_kb_exit
         
     handle_w:
@@ -1377,13 +1378,13 @@ blit_unrolled:
     handle_a:
         move_left()
         draw_board(board)
-        # blit()
+        blit()
         j check_kb_exit
     
     handle_s:
         move_down()
         draw_board(board)
-        # blit()
+        blit()
         j check_kb_exit
     
     check_kb_exit:
@@ -1549,19 +1550,19 @@ blit_unrolled:
     j draw_mario_exit
     draw_mario_1:
         draw_asset(asset_mario1_size, asset_mario1_data)
-        # blit()
+        blit()
         j draw_mario_exit
     draw_mario_2:
         draw_asset(asset_mario2_size, asset_mario2_data)
-        # blit()
+        blit()
         j draw_mario_exit
     draw_mario_3:
         draw_asset(asset_mario3_size, asset_mario3_data)
-        # blit()
+        blit()
         j draw_mario_exit
     draw_mario_4:
         draw_asset(asset_mario4_size, asset_mario4_data)
-        # blit()
+        blit()
         j draw_mario_exit
     draw_mario_exit:
 .end_macro
@@ -1582,7 +1583,7 @@ blit_unrolled:
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow1_size, asset_vvirus_yellow1_data)
-        # blit()
+        blit()
         j draw_virses_exit
     draw_viruses_2:
         set_x_i(30)
@@ -1594,7 +1595,7 @@ blit_unrolled:
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow2_size, asset_vvirus_yellow2_data)
-        # blit()
+        blit()
         j draw_virses_exit
     draw_viruses_3:
         set_x_i(30)
@@ -1606,7 +1607,7 @@ blit_unrolled:
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow3_size, asset_vvirus_yellow3_data)
-        # blit()
+        blit()
         j draw_virses_exit
     draw_viruses_4:
         set_x_i(30)
@@ -1618,7 +1619,7 @@ blit_unrolled:
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow4_size, asset_vvirus_yellow4_data)
-        # blit()
+        blit()
         j draw_virses_exit
     draw_virses_exit:
 .end_macro
@@ -1955,7 +1956,7 @@ blit_unrolled:
         set_y_i(0)
         # draw_asset(asset_bottle_size, asset_bottle_data)
         draw_board(board)
-        # blit()
+        blit()
         generate_random_pill()
         li $a0 16
         double_viruses_to_spawn()
@@ -1985,7 +1986,7 @@ blit_unrolled:
             handle_handover()
             bgtz $v1 pre_end_game_loop
             draw_board(board)
-            # blit()
+            blit()
         remove_cont:
         
         tick_sleep()
@@ -1998,7 +1999,7 @@ blit_unrolled:
         set_y_i(72)
         
         draw_asset(asset_game_over_size, asset_game_over_data)
-        # blit()
+        blit()
         
         li $v0 0
         check_restart()
