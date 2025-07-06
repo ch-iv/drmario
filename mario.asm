@@ -90,36 +90,11 @@
     addi $sp $sp 4
 .end_macro
 
-.macro set_x_offset_i(%a1)
-    # Sets the x offset to the value provided.
-    # The x offset is stored in $s2.
-    li $s2 %a1
-.end_macro
-
-.macro set_y_offset_i(%a1)
-    # Sets the y offset to the value provided.
-    # The y offset is stored in $s3.
-    li $s3 %a1
-.end_macro
-
-.macro set_color(%a1)
-    # Sets the current drawing color to the value provided in the register.
-    # The drawing color is stored in $s7.
-    move $s7 %a1
-.end_macro
-
-.macro set_color_i(%a1)
-    # Sets the current drawing color to the value provided.
-    # The drawing color is stored in $s7.
-    li $s7 %a1
-.end_macro
-
 .macro set_color_w(%a1)
     # Sets the current drawing color from the provided word label.
     # The drawing color is stored in $s7.
     lw $s7 %a1
 .end_macro
-
 
 .macro set_x_i(%a1)
     # Sets the value of x from a passed int.
