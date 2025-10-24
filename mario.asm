@@ -2,6 +2,7 @@
     trololol: .space 1000000
     
     disp_addr: .word 0x10008000
+    
     screen_size: .word 57344
     screen_height: .word 224
     screen_width: .word 256
@@ -16,13 +17,11 @@
     keyboard_address: .word 0xffff0000
     render_buffer: .space 229376
     render_buffer_size: .word 229376
-    
-    trolo1: .space 10000000
-    .include "board.c"
-    trolo2: .space 10000000
     is_paused: .word 0
     viruses_to_spawn: .word 1 
     start_time: .word 0
+    
+    .include "board.c"
     .include "pill_red_left.c"
     .include "pill_red_right.c"
     .include "pill_red_top.c"
@@ -41,7 +40,6 @@
     .include "pill_yellow_bottom.c"
     .include "pill_yellow_single.c"
     .include "pill_yellow_empty.c"
-    tralalero: .space 100000
     .include "virus_red1.c"
     .include "virus_blue1.c"
     .include "virus_yellow1.c"
@@ -67,9 +65,7 @@
     .include "vvirus_red4.c"
     .include "vvirus_blue4.c"
     .include "vvirus_yellow4.c"
-    tralala: .space 100000
     .include "bottle.c"
-    trolo: .space 10000000
 
 .macro push(%reg)
     # Pushes a register value onto a stack.
@@ -114,38 +110,10 @@
 .macro draw()
     # draws a pixel offset by x offset and y offset from the register x y position.
     # Calculate x position with offset: $s0 + $t0
-    la $t8, render_buffer
+    lw $t8 disp_addr
     add $t8 $s2 $t8
     add $t8 $t8 $s0
     sw $s7, 0($t8)
-.end_macro
-
-.macro draw2()
-    # draws a pixel offset by x offset and y offset from the register x y position.
-    # Calculate x position with offset: $s0 + $t0
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    
-    lw $t1, screen_width
-    add $t0, $s1, $s3     # t0 = y + y_offset
-    mul $t0, $t0, $t1     # t0 = screen_width * (y + y_offset)
-    add $t0, $t0, $s0     # t0 = screen_width * (y + y_offset) + x
-    add $t0, $t0, $s2     # t0 = screen_width * (y + y_offset) + x + x_offset
-    
-    # Convert to byte offset (multiply by 4)
-    sll $t0, $t0, 2       # Shift left by 2 is much faster than multiply by 4
-    
-    la $t2, render_buffer
-    add $t2, $t2, $t0
-    
-    sw $s7, 0($t2)
-    
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
 .end_macro
 
 .macro draw_background()
@@ -237,31 +205,35 @@
     pop($t0)
 .end_macro
 
-
-.macro draw_asset2(%asset_size, %asset_data)
+.macro draw_board(%board)
     push($t0)
     push($t1)
+    push($t2)
     
-    lw $t0 %asset_size
-    la $t1 %asset_data
+    lw $t0 board_width
+    lw $t1 board_height
+    la $t2 board
     
-    draw_asset_loop:
-        lw $s2 0($t1)   # x offset
-        lw $s3 4($t1)   # y offset
-        lw $s7 8($t1)   # color
-        draw2()
+    draw_board_loop_y:
+        lw $t0 board_width
+        draw_board_loop_x:
+            move $a0 $t2
+            draw_board_cell()
+            
+            addi $t2 $t2 32 # advance the board address that we are drawing
+            subi $t0 $t0 1
+            
+            bgtz $t0 draw_board_loop_x
         
-        addi $t1 $t1 12
-        subi $t0 $t0 1
-        bgtz $t0, draw_asset_loop
+        subi $t1 $t1 1
+        bgtz $t1 draw_board_loop_y
     
+    pop($t2)
     pop($t1)
     pop($t0)
 .end_macro
 
-.macro draw_board(%board)
-    push($t0)
-    push($t1)
+.macro draw_board_cell()
     push($t2)
     push($t3)
     push($t4)
@@ -269,18 +241,7 @@
     push($t6)
     push($t7)
     push($t8)
-    
-    # set_x_i(0)
-    # set_y_i(0)
-    # draw_asset(asset_bottle_size, asset_bottle_data)
-    
-    lw $t0 board_width    # x iteration variable
-    lw $t1 board_height   # y iteration variable
-    la $t2 board
-    
-    draw_board_loop_y:
-        lw $t0 board_width
-        draw_board_loop_x:
+    move $t2 $a0
                 lw $s0 0($t2)   # x offset
                 sll $s0 $s0 2
                 
@@ -463,12 +424,7 @@
                     li $a0 2048
                     draw_square($a0)
                 not_a_pill:
-                    addi $t2 $t2 32
-                    subi $t0 $t0 1
-                    bgtz $t0 draw_board_loop_x
-        subi $t1 $t1 1
-        bgtz $t1 draw_board_loop_y
-    
+
     pop($t8)
     pop($t7)
     pop($t6)
@@ -476,8 +432,6 @@
     pop($t4)
     pop($t3)
     pop($t2)
-    pop($t1)
-    pop($t0)
 .end_macro
 
 .macro remove_cell(%cell_addr)
@@ -892,6 +846,7 @@
 .end_macro
 
 .macro blit()
+    j stop_blit
     push($t0)
     push($t1)
     push($t2)
@@ -910,25 +865,26 @@
     sll $t4, $t4, 2                # Convert word count to byte offset
     add $t4, $t1, $t4              # End address for unrolled loop
     
-    # Unrolled loop - copy 4 words per iteration
-blit_unrolled:
-    lw $t3, 0($t1)                 # Load word 1 from render buffer
-    sw $t3, 0($t2)                 # Store word 1 to display buffer
-    lw $t3, 4($t1)                 # Load word 2 from render buffer
-    sw $t3, 4($t2)                 # Store word 2 to display buffer
-    lw $t3, 8($t1)                 # Load word 3 from render buffer
-    sw $t3, 8($t2)                 # Store word 3 to display buffer
-    lw $t3, 12($t1)                # Load word 4 from render buffer
-    sw $t3, 12($t2)                # Store word 4 to display buffer
-    addiu $t1, $t1, 16             # Advance render buffer pointer (4 words)
-    addiu $t2, $t2, 16             # Advance display buffer pointer (4 words)
-    bne $t1, $t4, blit_unrolled    # Continue until reaching end address
+
+    blit_unrolled:
+        lw $t3, 0($t1)                 # Load word 1 from render buffer
+        sw $t3, 0($t2)                 # Store word 1 to display buffer
+        lw $t3, 4($t1)                 # Load word 2 from render buffer
+        sw $t3, 4($t2)                 # Store word 2 to display buffer
+        lw $t3, 8($t1)                 # Load word 3 from render buffer
+        sw $t3, 8($t2)                 # Store word 3 to display buffer
+        lw $t3, 12($t1)                # Load word 4 from render buffer
+        sw $t3, 12($t2)                # Store word 4 to display buffer
+        addiu $t1, $t1, 16             # Advance render buffer pointer (4 words)
+        addiu $t2, $t2, 16             # Advance display buffer pointer (4 words)
+        bne $t1, $t4, blit_unrolled    # Continue until reaching end address
     
     pop($t4)
     pop($t3)
     pop($t2)
     pop($t1)
     pop($t0)
+    stop_blit:
 .end_macro
 
 .macro rand(%max)
@@ -1139,6 +1095,19 @@ blit_unrolled:
         move $a1 $t1
         move_pill($a0, $a1)
         set_pill_bottom($s5)
+        
+        move $a0 $s4
+        draw_board_cell()
+        
+        move $a0 $s5
+        draw_board_cell()
+        
+        move $a0 $t0
+        draw_board_cell()
+        
+        move $a0 $t1
+        draw_board_cell()
+        blit()
         j rotate_exit
     
     rotate_vertical:
@@ -1149,7 +1118,7 @@ blit_unrolled:
         
         move $t0 $s4  # original top
         move $t1 $s5  # original bottom
-        
+                
         addi $s5 $s5 32
         addi $s4 $s4 256
             
@@ -1159,11 +1128,24 @@ blit_unrolled:
         set_pill_right($s5)
         
         set_pill_left($s4)
+        
+                
+        move $a0 $s4
+        draw_board_cell()
+        
+        move $a0 $s5
+        draw_board_cell()
+        
+        move $a0 $t0
+        draw_board_cell()
+        
+        move $a0 $t1
+        draw_board_cell()
+        blit()
         j rotate_exit
     
     rotate_exit:
-    draw_board(board)
-    blit()
+
     pop($t1)
     pop($t0)
     pop($v0)
@@ -1336,14 +1318,10 @@ blit_unrolled:
     handle_r:
         generate_random_pill()
         do_gravity(board)
-        draw_board(board)
-        blit()
         j check_kb_exit
     
     handle_d:
         move_right()
-        draw_board(board)
-        blit()
         j check_kb_exit
         
     handle_w:
@@ -1352,14 +1330,10 @@ blit_unrolled:
         
     handle_a:
         move_left()
-        draw_board(board)
-        blit()
         j check_kb_exit
     
     handle_s:
         move_down()
-        draw_board(board)
-        blit()
         j check_kb_exit
     
     check_kb_exit:
@@ -1599,216 +1573,74 @@ blit_unrolled:
     draw_virses_exit:
 .end_macro
 
-.macro play_music()
-    
-    beq $s6 0 draw_note1
-    beq $s6 256 draw_note2
-    beq $s6 800 draw_note3
-    j play_music_exit
-    
-    draw_note1:
-        li $v0, 31          # System call for MIDI out
-        li $a0, 62          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 66          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 69          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        j play_music_exit
-    
-    draw_note2:
-        li $v0, 31          # System call for MIDI out
-        li $a0, 64          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 61          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 69          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        j play_music_exit
-    
-    draw_note3:
-        li $v0, 31          # System call for MIDI out
-        li $a0, 62          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 66          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        li $v0, 31          # System call for MIDI out
-        li $a0, 71          # Pitch: middle C (60)
-        li $a1, 1000        # Duration: 1 second (1000 ms)
-        li $a2, 0           # Instrument: piano (0)
-        li $a3, 100         # Volume: medium-loud (100)
-        syscall
-        j play_music_exit
-        
-    play_music_exit:    
-.end_macro
-# Sound Effect 1: Alert Beep
-# A short, high-pitched beep that can be used as an alert or notification
 .macro ALERT_BEEP()
-    li $v0, 31          # System call for MIDI out
-    li $a0, 84          # Pitch: high C (84)
-    li $a1, 300         # Duration: 0.3 seconds
-    li $a2, 113         # Instrument: Tinkle Bell
-    li $a3, 127         # Volume: maximum loudness
+    li $v0, 31
+    li $a0, 84
+    li $a1, 300
+    li $a2, 113
+    li $a3, 127
     syscall
 .end_macro
 
-# Sound Effect 2: Error Buzz
-# A lower, dissonant sound that can indicate an error
 .macro ERROR_BUZZ()
-    li $v0, 31          # System call for MIDI out
-    li $a0, 48          # Pitch: low C (48)
-    li $a1, 500         # Duration: 0.5 seconds
-    li $a2, 20          # Instrument: Reed Organ
-    li $a3, 120         # Volume: quite loud
+    li $v0, 31
+    li $a0, 48
+    li $a1, 500
+    li $a2, 20
+    li $a3, 120
     syscall
     
-    # Second part of the buzz - slightly different pitch
     li $v0, 31
-    li $a0, 49          # Pitch: C# (49)
-    li $a1, 400         # Duration: 0.4 seconds
-    li $a2, 20          # Instrument: Reed Organ
-    li $a3, 110         # Volume: moderately loud
+    li $a0, 49
+    li $a1, 400
+    li $a2, 20
+    li $a3, 110
     syscall
 .end_macro
 
-# Sound Effect 3: Success Jingle
-# A pleasant ascending sequence to indicate success
 .macro SUCCESS_JINGLE()
-    # First note
-    li $v0, 31          # System call for MIDI out
-    li $a0, 60          # Pitch: middle C (60)
-    li $a1, 200         # Duration: 0.2 seconds
-    li $a2, 9           # Instrument: Glockenspiel
-    li $a3, 100         # Volume: medium
+    li $v0, 31
+    li $a0, 60
+    li $a1, 200
+    li $a2, 9
+    li $a3, 100
+    syscall
+
+    li $v0, 31
+    li $a0, 64
+    li $a1, 200
+    li $a2, 9
+    li $a3, 105
     syscall
     
-
-    
-    # Second note
     li $v0, 31
-    li $a0, 64          # Pitch: E (64)
-    li $a1, 200         # Duration: 0.2 seconds
-    li $a2, 9           # Instrument: Glockenspiel
-    li $a3, 105         # Volume: medium
-    syscall
-    
-
-    
-    # Third note
-    li $v0, 31
-    li $a0, 67          # Pitch: G (67)
-    li $a1, 400         # Duration: 0.4 seconds
-    li $a2, 9           # Instrument: Glockenspiel
-    li $a3, 110         # Volume: medium-loud
+    li $a0, 67
+    li $a1, 400
+    li $a2, 9
+    li $a3, 110
     syscall
 .end_macro
 
-# Sound Effect 4: Countdown Beep
-# A descending sequence that can be used for countdown or timer effects
 .macro COUNTDOWN_BEEP()
-    # First beep
-    li $v0, 31          # System call for MIDI out
-    li $a0, 72          # Pitch: C (72)
-    li $a1, 250         # Duration: 0.25 seconds
-    li $a2, 115         # Instrument: Steel Drums
-    li $a3, 110         # Volume: medium-loud
+    li $v0, 31
+    li $a0, 72
+    li $a1, 250
+    li $a2, 115
+    li $a3, 110
     syscall
     
-
-    # Second beep
     li $v0, 31
-    li $a0, 67          # Pitch: G (67)
-    li $a1, 250         # Duration: 0.25 seconds
-    li $a2, 115         # Instrument: Steel Drums
-    li $a3, 115         # Volume: louder
+    li $a0, 67
+    li $a1, 250
+    li $a2, 115
+    li $a3, 115
     syscall
 
-    
-    # Final beep
     li $v0, 31
-    li $a0, 60          # Pitch: Middle C (60)
-    li $a1, 400         # Duration: 0.4 seconds
-    li $a2, 115         # Instrument: Steel Drums
-    li $a3, 127         # Volume: maximum
-    syscall
-.end_macro
-
-# Sound Effect 5: Laser Blast
-# A sci-fi style laser sound effect
-.macro LASER_BLAST()
-    # Quick rising pitch
-    li $v0, 31          # System call for MIDI out
-    li $a0, 90          # Pitch: High F# (90)
-    li $a1, 50          # Duration: Very short (50ms)
-    li $a2, 81          # Instrument: Lead 1 (square wave)
-    li $a3, 127         # Volume: maximum
-    syscall
-
-    
-    # Main laser sound
-    li $v0, 31
-    li $a0, 103         # Pitch: Very high G (103)
-    li $a1, 200         # Duration: 0.2 seconds
-    li $a2, 81          # Instrument: Lead 1 (square wave)
-    li $a3, 120         # Volume: quite loud
-    syscall
-    
-    # Falling pitch to simulate dissipation
-    li $v0, 31
-    li $a0, 84          # Pitch: High C (84)
-    li $a1, 100         # Duration: 0.1 seconds
-    li $a2, 81          # Instrument: Lead 1 (square wave)
-    li $a3, 100         # Volume: medium
-    syscall
-.end_macro
-
-# Sound Effect 6: Coin Collect
-# A cheerful sound like collecting a coin in a video game
-.macro COIN_COLLECT()
-    # First ping
-    li $v0, 31          # System call for MIDI out
-    li $a0, 76          # Pitch: E (76)
-    li $a1, 100         # Duration: 0.1 seconds
-    li $a2, 10          # Instrument: Music Box
-    li $a3, 120         # Volume: quite loud
-    syscall
-
-    # Second ping (higher pitch)
-    li $v0, 31
-    li $a0, 84          # Pitch: C (84)
-    li $a1, 150         # Duration: 0.15 seconds
-    li $a2, 10          # Instrument: Music Box
-    li $a3, 127         # Volume: maximum
+    li $a0, 60
+    li $a1, 400
+    li $a2, 115
+    li $a3, 127
     syscall
 .end_macro
 
@@ -1908,20 +1740,16 @@ blit_unrolled:
 .end_macro
 
 .text
-    set_start_time()
-        draw_asset(asset_mario_bg_size, asset_mario_bg_data)
-        # blit()
-    print_elapsed_time()
+    draw_asset(asset_mario_bg_size, asset_mario_bg_data)
     li $t9 0
 
     game_loop_start:
-        li $t9 0    # global cycle counter
+        li $t9 0
         
         clear_board()
         set_color_w(background_color)
         lw $a0 screen_size
-        # draw_background()
-        # end_game()
+
         set_x_i(0)
         set_y_i(0)
         
@@ -1929,7 +1757,6 @@ blit_unrolled:
         
         set_x_i(0)
         set_y_i(0)
-        # draw_asset(asset_bottle_size, asset_bottle_data)
         draw_board(board)
         blit()
         generate_random_pill()
@@ -1939,21 +1766,20 @@ blit_unrolled:
         spawn_n_virus($a0)
         tick_set_zero()
     game_loop:
-        set_start_time()
-        get_n_virses()
-        beq $v0 $zero game_loop_start
-        # play_music()
+        # set_start_time()
+        
         on_tick(256, animation_cont)
             draw_mario()
             draw_viruses()
         animation_cont:
         
-        on_tick(1, check_kb_cont)
-            check_kb()
-        check_kb_cont:
+        check_kb()
         
         get_gravity_speed()
         on_tick_reg($v0, remove_cont)
+            get_n_virses()
+            beq $v0 $zero game_loop_start
+        
             handle_handover()
             remove_connected(board)
             remove_connected_horizontal(board)
