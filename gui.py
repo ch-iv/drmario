@@ -44,7 +44,7 @@ def write_board(board, rows, cols, size):
         for col in row:
             cells.append(col.txt())
 
-    with open("board.c", "w") as f:
+    with open("generated_assets/board.c", "w") as f:
         f.write(f"board_size: .word {size}\n")
         f.write(f"board_height: .word {rows}\n")
         f.write(f"board_height_minus_one: .word {rows-1}\n")

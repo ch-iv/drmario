@@ -1,71 +1,69 @@
 .data
-    trololol: .space 1000000
+    trololol:             .space 1000000
+    disp_addr:            .word 0x10008000
+    screen_size:          .word 57344
+    screen_height:        .word 224
+    screen_width:         .word 256
+    screen_width2:        .word 0x100
+    background_color:     .word 0x7C606B
+    foreground_color:     .word 0xEDA4BD
+    dark_blue:            .word 0x111d4a
+    turquoise:            .word 0x8789C0
+    color_black:          .word 0
+    color_purple:         .word 0x5500b2
+    color_dark_purple:    .word 0x2e0061
+    keyboard_address:     .word 0xffff0000
+    render_buffer:        .space 229376
+    render_buffer_size:   .word 229376
+    is_paused:            .word 0
+    viruses_to_spawn:     .word 1
+    start_time:           .word 0
     
-    disp_addr: .word 0x10008000
-    
-    screen_size: .word 57344
-    screen_height: .word 224
-    screen_width: .word 256
-    screen_width2: .word 0x100
-    background_color: .word 0x7C606B 
-    foreground_color: .word 0xEDA4BD
-    dark_blue: .word 0x111d4a
-    turquoise: .word 0x8789C0
-    color_black: .word 0
-    color_purple: .word 0x5500b2
-    color_dark_purple: .word 0x2e0061
-    keyboard_address: .word 0xffff0000
-    render_buffer: .space 229376
-    render_buffer_size: .word 229376
-    is_paused: .word 0
-    viruses_to_spawn: .word 1 
-    start_time: .word 0
-    
-    .include "board.c"
-    .include "pill_red_left.c"
-    .include "pill_red_right.c"
-    .include "pill_red_top.c"
-    .include "pill_red_bottom.c"
-    .include "pill_red_single.c"
-    .include "pill_red_empty.c"
-    .include "pill_blue_left.c"
-    .include "pill_blue_right.c"
-    .include "pill_blue_top.c"
-    .include "pill_blue_bottom.c"
-    .include "pill_blue_single.c"
-    .include "pill_blue_empty.c"
-    .include "pill_yellow_left.c"
-    .include "pill_yellow_right.c"
-    .include "pill_yellow_top.c"
-    .include "pill_yellow_bottom.c"
-    .include "pill_yellow_single.c"
-    .include "pill_yellow_empty.c"
-    .include "virus_red1.c"
-    .include "virus_blue1.c"
-    .include "virus_yellow1.c"
-    .include "virus_red2.c"
-    .include "virus_blue2.c"
-    .include "virus_yellow2.c"
-    .include "game_over.c"
-    .include "pause_screen.c"
-    .include "mario1.c"
-    .include "mario2.c"
-    .include "mario3.c"
-    .include "mario4.c"
-    .include "mario_bg.c"
-    .include "vvirus_red1.c"
-    .include "vvirus_blue1.c"
-    .include "vvirus_yellow1.c"
-    .include "vvirus_red2.c"
-    .include "vvirus_blue2.c"
-    .include "vvirus_yellow2.c"
-    .include "vvirus_red3.c"
-    .include "vvirus_blue3.c"
-    .include "vvirus_yellow3.c"
-    .include "vvirus_red4.c"
-    .include "vvirus_blue4.c"
-    .include "vvirus_yellow4.c"
-    .include "bottle.c"
+    .include "generated_assets/board.asm"
+    .include "generated_assets/pill_red_left.asm"
+    .include "generated_assets/pill_red_right.asm"
+    .include "generated_assets/pill_red_top.asm"
+    .include "generated_assets/pill_red_bottom.asm"
+    .include "generated_assets/pill_red_single.asm"
+    .include "generated_assets/pill_red_empty.asm"
+    .include "generated_assets/pill_blue_left.asm"
+    .include "generated_assets/pill_blue_right.asm"
+    .include "generated_assets/pill_blue_top.asm"
+    .include "generated_assets/pill_blue_bottom.asm"
+    .include "generated_assets/pill_blue_single.asm"
+    .include "generated_assets/pill_blue_empty.asm"
+    .include "generated_assets/pill_yellow_left.asm"
+    .include "generated_assets/pill_yellow_right.asm"
+    .include "generated_assets/pill_yellow_top.asm"
+    .include "generated_assets/pill_yellow_bottom.asm"
+    .include "generated_assets/pill_yellow_single.asm"
+    .include "generated_assets/pill_yellow_empty.asm"
+    .include "generated_assets/virus_red1.asm"
+    .include "generated_assets/virus_blue1.asm"
+    .include "generated_assets/virus_yellow1.asm"
+    .include "generated_assets/virus_red2.asm"
+    .include "generated_assets/virus_blue2.asm"
+    .include "generated_assets/virus_yellow2.asm"
+    .include "generated_assets/game_over.asm"
+    .include "generated_assets/pause_screen.asm"
+    .include "generated_assets/mario1.asm"
+    .include "generated_assets/mario2.asm"
+    .include "generated_assets/mario3.asm"
+    .include "generated_assets/mario4.asm"
+    .include "generated_assets/mario_bg.asm"
+    .include "generated_assets/vvirus_red1.asm"
+    .include "generated_assets/vvirus_blue1.asm"
+    .include "generated_assets/vvirus_yellow1.asm"
+    .include "generated_assets/vvirus_red2.asm"
+    .include "generated_assets/vvirus_blue2.asm"
+    .include "generated_assets/vvirus_yellow2.asm"
+    .include "generated_assets/vvirus_red3.asm"
+    .include "generated_assets/vvirus_blue3.asm"
+    .include "generated_assets/vvirus_yellow3.asm"
+    .include "generated_assets/vvirus_red4.asm"
+    .include "generated_assets/vvirus_blue4.asm"
+    .include "generated_assets/vvirus_yellow4.asm"
+    .include "generated_assets/bottle.asm"
 
 .macro push(%reg)
     # Pushes a register value onto a stack.
