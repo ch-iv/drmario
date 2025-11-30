@@ -1320,21 +1320,35 @@
     
     handle_d:
         move_right()
+        # We should update the screen to reflect the state of the game after
+        # every user input, because controls don't feel snappy otherwise.
+        # 
+        # TODO: We don't actually need to update *the entire screen*, instead
+        #   we should only update the affected region.
+        draw_board(board)
+        blit()
         j check_kb_exit
         
     handle_w:
         rotate()
+        draw_board(board)
+        blit()
         j check_kb_exit
         
     handle_a:
         move_left()
+        draw_board(board)
+        blit()
         j check_kb_exit
     
     handle_s:
         move_down()
+        draw_board(board)
+        blit()
         j check_kb_exit
-    
+        
     check_kb_exit:
+
     pop($t1)
     pop($t0)
 .end_macro
