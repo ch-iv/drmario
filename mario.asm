@@ -1410,26 +1410,6 @@
     pop($t0)
 .end_macro
 
-.macro spawn_n_virus(%num_to_spawn)
-    push($t0)
-    push($t1)
-    spawn_virus_loop:
-        beq $zero %num_to_spawn spawn_n_virus_exit
-        lw $t0 board
-        # addi $t0 $t0 1024
-        
-        rand(96)
-        li $t1 32
-        mul $t1 $v0 $t1
-        addi $t1 $t1 1024
-        spawn_virus($t1)
-        sub %num_to_spawn %num_to_spawn $v0
-        j spawn_virus_loop
-    spawn_n_virus_exit:
-    pop($t1)
-    pop($t0)
-.end_macro
-
 .macro check_restart()
     push($t0)
     push($t1)
@@ -1713,48 +1693,31 @@
     pop($t0)
 .end_macro
 
-.macro double_viruses_to_spawn()
-  push($t0)
-  push($t1)
+.macro spawn_n_virus(%num_to_spawn)
+    spawn_virus_loop:
+        beq $zero %num_to_spawn spawn_n_virus_exit
+        lw $t0 board
+        
+        rand(96)
+        li $t1 32
+        mul $t1 $v0 $t1
+        addi $t1 $t1 1024
+        spawn_virus($t1)
+        sub %num_to_spawn %num_to_spawn $v0
+        j spawn_virus_loop
+    spawn_n_virus_exit:
+.end_macro
+
+.macro spawn_double_viruses()
   la $t0 viruses_to_spawn
-  lw $t1 0($t0)
-  sll $t1 $t1 1
-  sw $t1 0($t0)
-  move $v0 $t1
-  pop($t1)
-  pop($t0)
-.end_macro
+  lw $a0 0($t0)
+  sll $a0 $a0 1  # Double the virus count
+  sw $a0 0($t0)
 
-.macro set_start_time()
-    push($t0)
-    li $v0 30
-    syscall
-    la $t0 start_time
-    sw $a0 0($t0)
-    pop($t0)
-.end_macro
-
-.macro print_elapsed_time()
-    push($t0)
-    push($t1)
-    li $v0 30
-    syscall
-    la $t0 start_time
-    lw $t1 0($t0)
-    sub $a0 $a0 $t1 
-    li $v0 1
-    syscall
-    li $v0 11
-    la $a0 '\n'
-    syscall
-    pop($t1)
-    pop($t0)
+  spawn_n_virus($a0)
 .end_macro
 
 .text
-    draw_asset(asset_mario_bg_size, asset_mario_bg_data)
-    li $t9 0
-
     game_loop_start:
         li $t9 0
         
@@ -1772,14 +1735,11 @@
         draw_board(board)
         blit()
         generate_random_pill()
-        li $a0 16
-        double_viruses_to_spawn()
-        move $a0 $v0
-        spawn_n_virus($a0)
+        spawn_double_viruses()
+
         tick_set_zero()
+
     game_loop:
-        # set_start_time()
-        
         on_tick(256, animation_cont)
             draw_mario()
             draw_viruses()
