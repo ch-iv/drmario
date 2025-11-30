@@ -232,13 +232,6 @@
 .end_macro
 
 .macro draw_board_cell()
-    push($t2)
-    push($t3)
-    push($t4)
-    push($t5)
-    push($t6)
-    push($t7)
-    push($t8)
     move $t2 $a0
                 lw $s0 0($t2)   # x offset
                 sll $s0 $s0 2
@@ -423,13 +416,6 @@
                     draw_square($a0)
                 not_a_pill:
 
-    pop($t8)
-    pop($t7)
-    pop($t6)
-    pop($t5)
-    pop($t4)
-    pop($t3)
-    pop($t2)
 .end_macro
 
 .macro remove_cell(%cell_addr)
@@ -502,19 +488,8 @@
 .end_macro
 
 .macro remove_connected(%board)
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    push($t4)
-    push($t5)
-    push($t6)
-    push($t7)
-    push($t8)
-    
     lw $t0 board_width_minus_one    # x iteration variable
     lw $t1 board_height_minus_one   # y iteration variable
-    
     
     draw_board_loop_y:
         lw $t0 board_width_minus_one
@@ -554,32 +529,11 @@
         subi $t1 $t1 1
         li $t0 3
         bge $t1 $t0 draw_board_loop_y
-    
-    pop($t8)
-    pop($t7)
-    pop($t6)
-    pop($t5)
-    pop($t4)
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
 .end_macro
 
-.macro remove_connected_horizontal(%board_addr)
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    push($t4)
-    push($t5)
-    push($t6)
-    push($t7)
-    push($t8)
-    
+.macro remove_connected_horizontal(%board_addr)    
     lw $t0 board_width_minus_one    # x iteration variable
     lw $t1 board_height_minus_one   # y iteration variable
-    
     
     draw_board_loop_y:
         lw $t0 board_width_minus_one
@@ -619,16 +573,6 @@
                 bge $t0 $t6 draw_board_loop_x
         subi $t1 $t1 1
         bgez $t1 draw_board_loop_y
-    
-    pop($t8)
-    pop($t7)
-    pop($t6)
-    pop($t5)
-    pop($t4)
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
 .end_macro
 
 .macro try_drop_cell(%cell_addr)
@@ -752,16 +696,6 @@
 .end_macro
 
 .macro do_gravity(%board)
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    push($t4)
-    push($t5)
-    push($t6)
-    push($t7)
-    push($t8)
-    
     lw $t0 board_width_minus_one    # x iteration variable
     lw $t1 board_height_minus_one   # y iteration variable
     subi $t1 $t1 1  # we don't do gravity on last row
@@ -784,105 +718,6 @@
                 bgez $t0 draw_board_loop_x
         subi $t1 $t1 1
         bgez $t1 draw_board_loop_y
-    
-    pop($t8)
-    pop($t7)
-    pop($t6)
-    pop($t5)
-    pop($t4)
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
-.end_macro
-
-.macro iter(%board)
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    push($t4)
-    push($t5)
-    push($t6)
-    push($t7)
-    push($t8)
-    
-    lw $t0 board_width_minus_one    # x iteration variable
-    lw $t1 board_height_minus_one   # y iteration variable
-    
-    
-    draw_board_loop_y:
-        lw $t0 board_width_minus_one
-        draw_board_loop_x:
-                la $t2 board
-                li $t3 256
-                mul $t3 $t3 $t1
-                add $t2 $t2 $t3
-                li $t3 32
-                mul $t3 $t3 $t0
-                add $t2 $t2 $t3     # now $t2 stores the beginning of the memory location that stores the cell at (x=$t0, y=$t1)
-                
-                lw $s0 0($t2)   # x offset
-                lw $s1 4($t2)   # y offset
-                lw $t5 8($t2)   # sprite color (not a hex code)
-                lw $t6 12($t2)  # sprite type
-                
-                subi $t0 $t0 1
-                bgez $t0 draw_board_loop_x
-        subi $t1 $t1 1
-        bgez $t1 draw_board_loop_y
-    
-    pop($t8)
-    pop($t7)
-    pop($t6)
-    pop($t5)
-    pop($t4)
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
-.end_macro
-
-.macro blit()
-    j stop_blit
-    push($t0)
-    push($t1)
-    push($t2)
-    push($t3)
-    push($t4)
-    
-    lw $t0 render_buffer_size      # Load the size of the render buffer (in bytes)
-    la $t1 render_buffer           # Load the address of the render buffer
-    lw $t2 disp_addr               # Load the address of the display buffer
-    srl $t0 $t0 2                  # Divide size by 4 to get number of words to copy
-
-    # Calculate the end address for the unrolled loop
-    srl $t4, $t0, 2                # Divide by 4 (unroll factor)
-    sll $t4, $t4, 2                # Multiply by 4 to get number of words handled by unrolled loop
-    sub $t0, $t0, $t4              # Remaining words after unrolled loop
-    sll $t4, $t4, 2                # Convert word count to byte offset
-    add $t4, $t1, $t4              # End address for unrolled loop
-    
-
-    blit_unrolled:
-        lw $t3, 0($t1)                 # Load word 1 from render buffer
-        sw $t3, 0($t2)                 # Store word 1 to display buffer
-        lw $t3, 4($t1)                 # Load word 2 from render buffer
-        sw $t3, 4($t2)                 # Store word 2 to display buffer
-        lw $t3, 8($t1)                 # Load word 3 from render buffer
-        sw $t3, 8($t2)                 # Store word 3 to display buffer
-        lw $t3, 12($t1)                # Load word 4 from render buffer
-        sw $t3, 12($t2)                # Store word 4 to display buffer
-        addiu $t1, $t1, 16             # Advance render buffer pointer (4 words)
-        addiu $t2, $t2, 16             # Advance display buffer pointer (4 words)
-        bne $t1, $t4, blit_unrolled    # Continue until reaching end address
-    
-    pop($t4)
-    pop($t3)
-    pop($t2)
-    pop($t1)
-    pop($t0)
-    stop_blit:
 .end_macro
 
 .macro rand(%max)
@@ -1105,7 +940,6 @@
         
         move $a0 $t1
         draw_board_cell()
-        blit()
         j rotate_exit
     
     rotate_vertical:
@@ -1139,7 +973,6 @@
         
         move $a0 $t1
         draw_board_cell()
-        blit()
         j rotate_exit
     
     rotate_exit:
@@ -1303,7 +1136,6 @@
             set_x_i(96)
             set_y_i(72)
             draw_asset(asset_pause_screen_size, asset_pause_screen_data)
-            blit()
             lw $t0 keyboard_address
             lw $t1 0($t0)
             bne $t1 1 handle_p1
@@ -1326,25 +1158,21 @@
         # TODO: We don't actually need to update *the entire screen*, instead
         #   we should only update the affected region.
         draw_board(board)
-        blit()
         j check_kb_exit
         
     handle_w:
         rotate()
         draw_board(board)
-        blit()
         j check_kb_exit
         
     handle_a:
         move_left()
         draw_board(board)
-        blit()
         j check_kb_exit
     
     handle_s:
         move_down()
         draw_board(board)
-        blit()
         j check_kb_exit
         
     check_kb_exit:
@@ -1491,19 +1319,15 @@
     j draw_mario_exit
     draw_mario_1:
         draw_asset(asset_mario1_size, asset_mario1_data)
-        blit()
         j draw_mario_exit
     draw_mario_2:
         draw_asset(asset_mario2_size, asset_mario2_data)
-        blit()
         j draw_mario_exit
     draw_mario_3:
         draw_asset(asset_mario3_size, asset_mario3_data)
-        blit()
         j draw_mario_exit
     draw_mario_4:
         draw_asset(asset_mario4_size, asset_mario4_data)
-        blit()
         j draw_mario_exit
     draw_mario_exit:
 .end_macro
@@ -1524,7 +1348,6 @@
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow1_size, asset_vvirus_yellow1_data)
-        blit()
         j draw_virses_exit
     draw_viruses_2:
         set_x_i(30)
@@ -1536,7 +1359,6 @@
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow2_size, asset_vvirus_yellow2_data)
-        blit()
         j draw_virses_exit
     draw_viruses_3:
         set_x_i(30)
@@ -1548,7 +1370,6 @@
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow3_size, asset_vvirus_yellow3_data)
-        blit()
         j draw_virses_exit
     draw_viruses_4:
         set_x_i(30)
@@ -1560,7 +1381,6 @@
         set_x_i(45)
         set_y_i(155)
         draw_asset(asset_vvirus_yellow4_size, asset_vvirus_yellow4_data)
-        blit()
         j draw_virses_exit
     draw_virses_exit:
 .end_macro
@@ -1733,7 +1553,6 @@
         set_x_i(0)
         set_y_i(0)
         draw_board(board)
-        blit()
         generate_random_pill()
         spawn_double_viruses()
 
@@ -1759,7 +1578,6 @@
             handle_handover()
             bgtz $v1 pre_end_game_loop
             draw_board(board)
-            blit()
         remove_cont:
         
         tick_sleep()
@@ -1772,7 +1590,6 @@
         set_y_i(72)
         
         draw_asset(asset_game_over_size, asset_game_over_data)
-        blit()
         
         li $v0 0
         check_restart()
